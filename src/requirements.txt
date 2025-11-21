@@ -1,0 +1,16 @@
+keras==3.11.3
+matplotlib==3.10.6
+numpy==2.3.3
+openpyxl==3.1.5
+pandas==2.3.3
+pydataxm==0.3.16
+pytz==2025.2
+scikit-learn==1.7.2
+scipy==1.16.2
+seaborn==0.13.2
+tensorboard==2.20.0
+tensorboard-data-server==0.7.2
+tensorflow==2.20.0
+torch==2.9.1
+torchvision==0.24.1
+xlrd==2.0.2
