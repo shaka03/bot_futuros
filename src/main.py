@@ -9,17 +9,23 @@ import datetime as dt
 from load_data_energia import load_data as get_data_energia
 from load_data_futuros import get_data_futuros
 
+#%% Configuración
+DATA_PATH = os.path.join(os.getcwd(), "data/gold")
+
 #%% Ejecución
 if __name__ == "__main__":
     print("Iniciando carga de datos...")
+    
     # Cargar datos de energía
     df_energia = get_data_energia(
         fecha_inicio_str="2024-01-01",
-        fecha_fin_str="2024-06-30"
+        fecha_fin_str=dt.datetime.now().strftime("%Y-%m-%d"),
     )
+    df_energia.to_csv(f"{DATA_PATH}/datos_energia.csv", index=False)
     
     # Cargar datos de futuros
     df_futuros = get_data_futuros()
+    df_futuros.to_csv(f"{DATA_PATH}/datos_futuros.csv", index=False)
 
     # Aquí puedes agregar más lógica para procesar o guardar los datos cargados
     print("Proceso completado.")
