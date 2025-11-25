@@ -85,6 +85,14 @@ def transformar_precio_cierre(df):
 
 
 def cargar_datos_futuros():
+    """
+    Carga y organiza los datos de precios de cierre de futuros desde archivos Excel.
+    
+    Retorna
+    -------
+    pd.DataFrame
+        DataFrame con los datos organizados de precios de cierre de futuros.
+    """
     # Precios cierre futuros
     df_cierre_list = []
     for con in LISTA_CONTRATOS:
@@ -99,6 +107,13 @@ def cargar_datos_futuros():
         df = df[cols_keep]
         df_cierre_list.append(transformar_precio_cierre(df))
     df_cierre_futuros = pd.concat(df_cierre_list, ignore_index=True)
+
+    # Obtener ELS
+    df_els = df_cierre_futuros[df_cierre_futuros["Tipo"] == "ELM"]
+    df_els["Tipo"] = "ELS"
+    df_els["Nemotecnico"] = df_els["Nemotecnico"].str.replace("ELM", "ELS", regex=False)
+    df_cierre_futuros = pd.concat([df_cierre_futuros, df_els], ignore_index=True)
+    
     return df_cierre_futuros
 
 
