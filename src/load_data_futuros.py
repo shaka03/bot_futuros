@@ -8,7 +8,7 @@ warnings.filterwarnings("ignore")
 #%% Parámetros
 
 # Ruta de los datos
-DATA_PATH = DATA_PATH = os.path.join(os.getcwd(), "data/raw")
+DATA_PATH = os.path.join(os.getcwd(), "data/raw")
 
 # Diccionario de meses
 MAP_MESES = {
