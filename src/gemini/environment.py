@@ -2,6 +2,7 @@ import numpy as np
 import gymnasium as gym
 from gymnasium import spaces
 from config import Config
+from data_processor import DataProcessor
 
 class EnergyHedgingEnv(gym.Env):
     def __init__(self, data, dates, train_mode=True):
@@ -10,122 +11,148 @@ class EnergyHedgingEnv(gym.Env):
         self.dates = dates
         self.train_mode = train_mode
         self.n_agents = len(Config.CONTRACT_TYPES)
+        self.dp = DataProcessor()
         
-        # Definir espacios de acción y observación
-        # Acción: [Hedge_Ratio (-1 a 1), Roll_Decision (continuo, >0 ejecuta)] por agente
+        # Acción: [Hedge_Ratio_Delta (-1 a 1), Roll_Prob (0 a 1)]
+        # Hedge_Ratio_Delta: Cuánto cambiar la posición porcentualmente respecto al límite
         self.action_space = [spaces.Box(low=np.array([-1.0, -1.0]), high=np.array([1.0, 1.0]), dtype=np.float32) 
                              for _ in range(self.n_agents)]
         
-        # Estado: [Spot, M1, M2, DTM, Current_Position]
+        # Estado: [Spot, M1, M2, DTM, Posicion_Actual]
         self.observation_space = [spaces.Box(low=-np.inf, high=np.inf, shape=(5,), dtype=np.float32) 
                                   for _ in range(self.n_agents)]
         
-        self.current_step = 0
-        self.positions = np.zeros(self.n_agents) # Posición actual en contratos M1
-        self.cash = Config.INITIAL_CAPITAL
+        # Empezamos en el índice 1 para tener un "ayer" (t-1) válido
+        self.current_step = 1 
+        self.positions = np.zeros(self.n_agents)
         
     def reset(self):
-        self.current_step = 0
+        # Reiniciar al día 1 (para tener historia del día 0)
+        self.current_step = 1 
         self.positions = np.zeros(self.n_agents)
-        self.cash = Config.INITIAL_CAPITAL
         return self._get_obs()
 
     def _get_obs(self):
-        current_date = self.dates[self.current_step]
+        """
+        Retorna el estado basado en información conocida (AYER).
+        Evita el Look-ahead bias.
+        """
+        # El agente ve el cierre del paso anterior (t-1)
+        yesterday_idx = self.current_step - 1
+        yesterday_date = self.dates[yesterday_idx]
+        
         obs_list = []
-        
-        from data_processor import DataProcessor # Import local para evitar ciclo
-        dp = DataProcessor() 
-        
         for i, c_type in enumerate(Config.CONTRACT_TYPES):
-            # Obtener datos de mercado (Spot, M1, M2, DTM)
-            market_data = dp.get_state_for_date(self.data, current_date, c_type)
-            # Concatenar con posición actual (Privada del agente)
+            # Obtener datos de mercado de AYER
+            market_data = self.dp.get_state_for_date(self.data, yesterday_date, c_type)
+            # El estado incluye la posición que el agente TIENE actualmente (antes de decidir hoy)
             state = np.concatenate([market_data, [self.positions[i]]])
             obs_list.append(state)
             
         return obs_list
 
     def step(self, actions):
-        current_date = self.dates[self.current_step]
+        # Fechas relevantes
+        today_date = self.dates[self.current_step]
+        yesterday_date = self.dates[self.current_step - 1]
+        
         rewards = []
-        next_step = self.current_step + 1
-        done = next_step >= len(self.dates) - 1
+        # Verificar si es el final de los datos
+        done = self.current_step >= len(self.dates) - 1
         
-        portfolio_value_change = 0
-        
-        from data_processor import DataProcessor
-        dp = DataProcessor()
-        
-        obs_next = []
+        portfolio_pnl = 0
         
         for i, action in enumerate(actions):
             c_type = Config.CONTRACT_TYPES[i]
-            hedge_ratio_delta = action[0] # Cambio en posición
-            roll_prob = action[1] # Decisión de Roll (> 0)
             
-            # Estado actual
-            market_data = dp.get_state_for_date(self.data, current_date, c_type)
-            spot, m1, m2, dtm = market_data
+            # --- 1. INTERPRETACIÓN DE ACCIONES ---
+            # El agente decidió esto basado en lo que vio ayer
+            hedge_delta = action[0] # Cambio deseado en la posición
+            roll_prob = action[1]   # Decisión de Rollover
             
-            # --- Lógica de Negocio ---
+            # --- 2. OBTENER DATOS DE MERCADO ---
+            # Datos de Ayer (t-1): Referencia de costo/entrada
+            state_yesterday = self.dp.get_state_for_date(self.data, yesterday_date, c_type)
+            spot_y, m1_y, m2_y, dtm_y = state_yesterday
             
-            # 1. Calcular PnL diario de la posición mantenida
-            # Si es el último paso, no hay next_date, usamos 0 cambio
-            price_change = 0
-            if not done:
-                next_date = self.dates[next_step]
-                next_market = dp.get_state_for_date(self.data, next_date, c_type)
-                # Diferencia de precio del contrato M1
-                price_change = next_market[1] - m1 
+            # Datos de Hoy (t): Referencia de valoración/salida
+            state_today = self.dp.get_state_for_date(self.data, today_date, c_type)
+            spot_t, m1_t, m2_t, dtm_t = state_today
             
-            # PnL por tenencia
-            daily_pnl = self.positions[i] * price_change
+            # --- 3. EJECUCIÓN Y REBALANCEO (Inicio del día) ---
+            # Actualizamos la posición PRIMERO, porque el agente quiere estar expuesto HOY
             
-            # 2. Costos de Transacción (Rebalanceo)
-            # Definimos nueva posición objetivo
-            # Simplificación: La acción determina cuánto cambiar la posición
-            # Escalar acción a contratos reales (ej. max 100 contratos)
-            contracts_delta = hedge_ratio_delta * 10 
-            cost = abs(contracts_delta * m1 * Config.TRANSACTION_FEE)
+            # Definir magnitud del cambio (ej. 10 contratos máx por paso)
+            contracts_delta = hedge_delta * 10 
+            
+            # Costo de transacción: Se paga sobre el precio de ejecución.
+            # Asumimos ejecución a la apertura de hoy ~= cierre de ayer (m1_y)
+            cost = abs(contracts_delta * m1_y * Config.TRANSACTION_FEE)
+            
+            # Posición actualizada para enfrentar el día
+            previous_position = self.positions[i]
             self.positions[i] += contracts_delta
+            current_position = self.positions[i]
             
-            # 3. Lógica de Vencimiento y Roll-over
-            # Si DTM es bajo (ej. < 5 días) y el agente decide hacer roll
+            # --- 4. CÁLCULO DE PNL (Durante el día) ---
+            # Valoramos la NUEVA posición con el movimiento del mercado de hoy
+            # PnL = Posición_Actual * (Precio_Hoy - Precio_Ayer)
+            price_change = m1_t - m1_y
+            daily_pnl = current_position * price_change
+            
+            # --- 5. LÓGICA DE ROLLOVERS Y VENCIMIENTOS ---
             roll_cost = 0
-            if dtm <= 5 and roll_prob > 0.0:
-                # Cerrar M1, Abrir M2
-                # Spread cost + Fee
-                spread = m2 - m1
-                roll_cost = abs(self.positions[i] * spread) + (abs(self.positions[i] * m2 * Config.ROLL_OVER_COST))
-                # La posición se mantiene en cantidad, pero ahora rastrea M2 (que se volverá M1 en el siguiente reset lógico de datos)
-                # En esta simulación simplificada, el "precio base" cambiaría, lo simulamos como costo
-            
-            # 4. Liquidación al Vencimiento
             settlement_pnl = 0
-            if dtm == 0:
+            
+            # Caso A: Decisión de Roll-Over anticipado (si estamos cerca del vencimiento)
+            # Solo permitimos roll si faltan pocos días (ej. < 5)
+            if dtm_y <= 5 and roll_prob > 0.0:
+                # El agente decide "saltar" al siguiente contrato para evitar el spot
+                # Costo: Spread entre M2 y M1 (Roll Cost) + Comisiones extra
+                spread = m2_y - m1_y
+                # Asumimos que el costo es el spread adverso (simplificación)
+                roll_cost = abs(current_position * spread * Config.ROLL_OVER_COST)
+                
+                # NOTA: En una simulación continua compleja, aquí cambiaríamos el ticker base.
+                # Aquí penalizamos el costo para enseñar al agente que el roll no es gratis.
+            
+            # Caso B: Vencimiento (Liquidación Forzosa)
+            # Si hoy DTM llega a 0 o menos, el contrato expira.
+            if dtm_t <= 0:
                 # Liquidación financiera contra Spot
-                # Ganancia/Pérdida = (Spot - PrecioFuturoEntrada) * Posición
-                # Aquí modelamos el diferencial del día final
-                basis = spot - m1
-                settlement_pnl = self.positions[i] * basis
-                self.positions[i] = 0 # Cerrar posición forzada
+                # La posición "muere" y se liquida por la diferencia entre Spot y Futuro
+                # PnL Final = Posición * (Spot_Hoy - Futuro_Hoy)
+                basis = spot_t - m1_t
+                settlement_pnl = current_position * basis
+                
+                # Forzar cierre de posición (se queda en 0 para mañana)
+                self.positions[i] = 0 
             
+            # --- 6. PNL TOTAL Y RECOMPENSA ---
             total_step_pnl = daily_pnl - cost - roll_cost + settlement_pnl
-            portfolio_value_change += total_step_pnl
+            portfolio_pnl += total_step_pnl
+
+            # ACTUALIZAR CAJA:
+            self.cash += total_step_pnl
+
+            # Opcional: Penalizar fuertemente si quiebra (cash < 0)
+            if self.cash <= 0:
+                done = True
+                reward = -1000 # Castigo grande por quiebra
             
-            # Recompensa individual: Minimizar varianza local + Maximizar PnL (Cobertura eficiente)
-            # Penalizamos movimientos bruscos y costos
+            # Recompensa ajustada al riesgo (Media-Varianza)
             reward = total_step_pnl - (Config.RISK_AVERSION * (total_step_pnl**2))
             rewards.append(reward)
 
+        # Avanzar el reloj
         self.current_step += 1
+        
+        # La observación retornada es la de HOY (que será el "ayer" del siguiente paso)
         if not done:
-            obs_next = self._get_obs()
+            obs_next = self._get_obs() 
         else:
-            # Dummy observation for done
             obs_next = [np.zeros(5) for _ in range(self.n_agents)]
 
-        info = {"pnl": portfolio_value_change}
+        info = {"pnl": portfolio_pnl}
         
         return obs_next, rewards, done, info

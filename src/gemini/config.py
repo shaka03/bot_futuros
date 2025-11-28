@@ -5,9 +5,9 @@ DATA_PATH = os.path.join(os.getcwd(), "data/raw")
 
 class Config:
     # Rutas de archivos (ajustar según ubicación)
-    
     ENERGY_FILE = os.path.join(DATA_PATH, "datos_energia.csv")
     FUTURES_FILE = os.path.join(DATA_PATH, "datos_futuros.csv")
+    IMG_DIR = os.path.join(os.getcwd(), "resultados_img")
 
     # Configuración de Datos
     COD_VARIABLE_COL = "CodigoVariable" # Nombre de la columna para el código de variable
@@ -15,6 +15,7 @@ class Config:
     FECHA_SPOT_COL = "FechaHora"  # Nombre de la columna de fecha en datos de energía
     FECHA_FUT_COL = "Fecha"  # Nombre de la columna de fecha en datos de futuros
     PRECIO_COL = "Precio"  # Nombre de la columna de precio en datos de futuros
+    PRECIO_SPOT_COL = "Valor"  # Nombre de la columna de precio spot en datos de energía
 
     # Configuración del Entorno
     CONTRACT_TYPES = ["ELM", "ELS", "MTB", "DTB", "NTB"]
@@ -22,6 +23,7 @@ class Config:
     TRANSACTION_FEE = 0.001 # 0.1% por operación
     ROLL_OVER_COST = 0.002 # Costo extra por spread en rollover
     RISK_AVERSION = 0.5 # Factor lambda para penalizar varianza
+    OBSERVATION_SPACE_SIZE = 5  # [Spot, M1, M2, DTM, Current_Position]
     
     # Configuración de Entrenamiento
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")

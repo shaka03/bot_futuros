@@ -46,7 +46,6 @@ class MADDPG:
             action_dim=action_dim_single,
             device=Config.DEVICE
         )
-
         self.batch_size = Config.BATCH_SIZE
         self.gamma = Config.GAMMA
         self.tau = Config.TAU
@@ -65,7 +64,7 @@ class MADDPG:
         action_batch_flat = actions.view(self.batch_size, -1)
         
         for agent_idx, agent in enumerate(self.agents):
-            # 1. Update Critic
+            # 1. Update Critic (Dual Q)
             with torch.no_grad():
                 next_actions = []
                 for i, ag in enumerate(self.agents):

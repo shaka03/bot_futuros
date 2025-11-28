@@ -8,6 +8,21 @@ class DataProcessor:
         self.futures_path = Config.FUTURES_FILE
 
     def load_and_process(self):
+        """
+        Carga y procesa los datos de precio spot y futuros. Retorna un DataFrame combinado con precios spot y futuros.
+        
+        Pasos:
+        1. Cargar y procesar datos de precio spot (energía).
+        2. Cargar y procesar datos de futuros.
+        3. Construir curva continua (M1, M2) por tipo de contrato.
+        4. Unir datos spot y futuros en un solo DataFrame.
+        5. Retornar DataFrame final.
+
+        Retorna: DataFrame con columnas:
+            - SpotPrice
+            - (TipoContrato, Vencimiento): Precio del futuro
+            - Indice: Fecha
+        """
         # 1. Cargar y Procesar Precio Spot (Energía)
         df_spot = pd.read_csv(self.energy_path)
         # Filtrar precio de bolsa nacional y agrupar por día (promedio aritmético)
@@ -15,7 +30,7 @@ class DataProcessor:
         df_spot[Config.FECHA_SPOT_COL] = pd.to_datetime(df_spot[Config.FECHA_SPOT_COL])
         df_spot["Fecha"] = df_spot[Config.FECHA_SPOT_COL].dt.date
         # Promedio diario del precio spot
-        spot_daily = df_spot.groupby("Fecha")["Valor"].mean().reset_index()
+        spot_daily = df_spot.groupby("Fecha")[Config.PRECIO_SPOT_COL].mean().reset_index()
         spot_daily.columns = ["Fecha", "SpotPrice"]
         spot_daily["Fecha"] = pd.to_datetime(spot_daily["Fecha"])
         spot_daily.set_index("Fecha", inplace=True)
@@ -48,10 +63,21 @@ class DataProcessor:
     def get_state_for_date(self, full_data, current_date, contract_type):
         """
         Extrae el estado para un contrato específico en una fecha dada sin Look-ahead bias.
-        Retorna: Spot, Precio_M1, Precio_M2, Dias_Vencimiento_M1
+        
+        Parámetros:
+            full_data: DataFrame combinado con precios spot y futuros.
+            current_date: Fecha para la cual extraer el estado (datetime).
+            contract_type: Tipo de contrato (str).
+        
+        Tener en cuenta:
+        M1: Futuro con vencimiento más cercano > current_date
+        M2: Segundo futuro con vencimiento > current_date
+
+        Retorna: np.array con:
+            Spot, Precio_M1, Precio_M2, Dias_Vencimiento_M1
         """
         if current_date not in full_data.index:
-            return None
+            return np.zeros(4)
             
         row = full_data.loc[current_date]
         spot = row["SpotPrice"]
@@ -79,5 +105,4 @@ class DataProcessor:
         
         days_to_maturity = (m1_exp - current_date).days
         
-        # Normalización simple (se puede mejorar con StandardScaler ajustado solo en train)
         return np.array([spot, m1_price, m2_price, days_to_maturity])
