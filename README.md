@@ -33,3 +33,70 @@ Se requiere **Python 3.8+**. Instala las dependencias necesarias:
 
 ```bash
 pip install torch pandas numpy gymnasium matplotlib seaborn
+```
+
+## 📊 Datos Requeridos
+
+El sistema espera dos archivos CSV en el directorio raíz:
+
+datos_energia.csv: Precios de bolsa (Spot).
+
+Columnas clave: FechaHora, Valor (Precio), CodigoVariable (debe contener 'PB_Nal').
+
+datos_futuros.csv: Precios de cierre de contratos derivados.
+
+Columnas clave: Fecha, Tipo (ELM, ELS...), Mes, Año, Precio.
+
+## 🧠 Lógica del Agente
+
+### **Espacio de Estado (Observación)**
+
+Cada agente recibe un vector de 5 dimensiones:
+
+1. Precio Spot: Precio actual en bolsa.
+2. Precio Futuro M1: Contrato con vencimiento más cercano.
+3. Precio Futuro M2: Siguiente contrato (para referencia de roll).
+4. DTM (Days to Maturity): Días restantes para el vencimiento de M1.
+5. Posición Actual: Inventario actual del agente.
+
+### **Espacio de Acción**
+
+El agente emite 2 valores continuos `[-1, 1]`:
+
+1. Hedge Ratio Delta: Cuánto cambiar la posición actual (Compra/Venta).
+2. Roll Decision: Probabilidad de ejecutar un roll-over anticipado si DTM < 5 días.
+
+### **Función de Recompensa**
+
+El objetivo es maximizar el PnL penalizando la volatilidad (riesgo):
+
+$$R = PnL_{diario} - \lambda \cdot (PnL_{diario})^2 - Costos_{transaccion}$$
+
+Donde $\lambda$ es el factor de aversión al riesgo definido en `config.py`.
+
+## ▶️ Ejecución
+
+Para iniciar el entrenamiento y posterior validación:
+
+```Bash
+python main.py
+```
+
+El script realizará lo siguiente:
+
+1. Procesará los CSV.
+2. Entrenará los agentes durante el número de episodios definidos en Config.
+3. Ejecutará un Backtest sobre el 20% final de los datos (nunca vistos).
+4. Generará gráficos de resultados en la carpeta `resultados_img/`.
+
+## 📈 Resultados y Visualización
+
+Al finalizar, revisa la carpeta resultados_img/ para ver:
+
+* `pnl_comparison.png`: Curva de equidad comparando Dual Q Agent vs Benchmark (Buy & Hold).
+* `behavior_{CONTRACT}.png`: Gráfico de doble eje que muestra cómo el agente ajusta su Hedge Ratio en respuesta a los movimientos del Precio Spot.
+* `scatter_{CONTRACT}.png`: Mapa de dispersión para analizar la correlación entre precio y posición.
+
+## ⚠️ Disclaimer
+
+Este software es una prueba de concepto académica para la aplicación de Deep Reinforcement Learning en mercados energéticos. No constituye una recomendación de inversión financiera. Los mercados de futuros de energía son altamente volátiles y riesgosos.
