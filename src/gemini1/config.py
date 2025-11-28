@@ -1,7 +1,7 @@
 import torch
 import os
 
-DATA_PATH = os.path.join(os.getcwd(), "data/raw")
+DATA_PATH = os.path.join(os.getcwd(), "data/gold")
 
 class Config:
     # Rutas de archivos (ajustar según ubicación)
