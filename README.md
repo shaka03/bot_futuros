@@ -49,6 +49,8 @@ El sistema espera dos archivos CSV en el directorio raíz:
 
 ## 🧠 Lógica del Agente
 
+![Arquitectura del agente Dual Q - MADDPG](./docs/Trabajo_Integrador/Arquitectura_Agente.jpg)
+
 ### **Espacio de Estado (Observación)**
 
 Cada agente recibe un vector de 5 dimensiones:
