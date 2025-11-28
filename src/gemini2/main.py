@@ -12,6 +12,16 @@ sys.path.append(library_path)
 from load_data import load_data_files
 
 def main():
+    """
+    Función principal para entrenar y probar el agente MADDPG en el entorno de trading de energía.
+    
+    Steps:
+        1. Cargar y procesar datos.
+        2. Inicializar el entorno de trading.
+        3. Configurar el agente MADDPG.
+        4. Entrenar el agente.
+        5. Probar el agente y visualizar resultados.
+    """
     # 1. Datos
     load_data_files() # Cargar y guardar datos
     dp = DataProcessor()

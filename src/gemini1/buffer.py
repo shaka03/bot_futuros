@@ -5,6 +5,7 @@ class ReplayBuffer:
     def __init__(self, capacity, n_agents, state_dim, action_dim, device):
         """
         Buffer de repetición priorizado para MADDPG.
+
         Args:
             capacity: Tamaño máximo del buffer.
             n_agents: Número de agentes (contratos).
@@ -26,7 +27,16 @@ class ReplayBuffer:
         self.dones = np.zeros((capacity, 1), dtype=np.float32)
 
     def add(self, state, action, reward, next_state, done):
-        """Agrega una transición al buffer."""
+        """
+        Agrega una transición al buffer.
+
+        Args:
+            state: Estado actual.
+            action: Acción tomada.
+            reward: Recompensa recibida.
+            next_state: Siguiente estado.
+            done: Indicador de finalización del episodio.
+        """
         # state: (n_agents, state_dim)
         # action: (n_agents, action_dim)
         # reward: (n_agents,) o lista
@@ -41,7 +51,15 @@ class ReplayBuffer:
         self.size = min(self.size + 1, self.capacity)
 
     def sample(self, batch_size):
-        """Muestrea un lote aleatorio de transiciones."""
+        """
+        Muestrea un lote aleatorio de transiciones.
+        
+        Args:
+            batch_size: Tamaño del lote a muestrear.
+        
+        Returns:
+            Tupla de Tensores: (states, actions, rewards, next_states, dones)
+        """
         idx = np.random.choice(self.size, batch_size, replace=False)
         
         # Convertir directamente a Tensores y mover al dispositivo
@@ -54,4 +72,10 @@ class ReplayBuffer:
         return states, actions, rewards, next_states, dones
 
     def __len__(self):
+        """
+        Devuelve el tamaño actual del buffer.
+        
+        Returns:
+            Tamaño actual del buffer.
+        """
         return self.size

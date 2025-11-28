@@ -4,11 +4,23 @@ import os
 from config import Config
 
 class DataProcessor:
+    """
+    Clase para cargar y procesar datos de energía y futuros.
+    """
     def __init__(self):
+        """
+        Inicializa las rutas de los archivos de datos.
+        """
         self.energy_path = Config.ENERGY_FILE
         self.futures_path = Config.FUTURES_FILE
 
     def load_and_process(self):
+        """
+        Carga y procesa los datos de energía y futuros para construir la curva de precios.
+        
+        Returns:
+            pd.DataFrame: DataFrame con la curva de precios procesada.
+        """
         print("Cargando y procesando datos...")
         
         # 1. Cargar Spot

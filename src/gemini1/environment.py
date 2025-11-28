@@ -4,7 +4,20 @@ from gymnasium import spaces
 from config import Config
 
 class EnergyHedgingEnv(gym.Env):
+    """
+    Entorno de Simulación para Estrategias de Cobertura en Mercados de Energía.
+    Cada agente representa una estrategia de cobertura para un tipo de contrato de futuros.
+    """
     def __init__(self, data, dates, train_mode=True):
+        """
+        Inicializa el entorno con datos de mercado y configuración.
+        
+        Args:
+            data (pd.DataFrame): DataFrame con datos de precios históricos.
+            dates (list): Lista de fechas correspondientes a los datos.
+            train_mode (bool): Modo de entrenamiento o evaluación.
+        
+        """
         super(EnergyHedgingEnv, self).__init__()
         self.data = data
         self.dates = dates
@@ -25,12 +38,24 @@ class EnergyHedgingEnv(gym.Env):
         self.cash = Config.INITIAL_CAPITAL
         
     def reset(self):
+        """
+        Resetea el entorno al estado inicial.
+        
+        Returns:
+            list: Observaciones iniciales para cada agente.
+        """
         self.current_step = 0
         self.positions = np.zeros(self.n_agents)
         self.cash = Config.INITIAL_CAPITAL
         return self._get_obs()
 
     def _get_obs(self):
+        """
+        Obtiene las observaciones actuales para cada agente.
+        
+        Returns:
+            list: Lista de observaciones por agente.
+        """
         current_date = self.dates[self.current_step]
         obs_list = []
         
@@ -47,6 +72,15 @@ class EnergyHedgingEnv(gym.Env):
         return obs_list
 
     def step(self, actions):
+        """
+        Ejecuta un paso en el entorno basado en las acciones de los agentes.
+        
+        Args:
+            actions (list): Lista de acciones por agente.
+        
+        Returns:
+            tuple: Observaciones siguientes, recompensas, estado de finalización, información adicional.
+        """
         current_date = self.dates[self.current_step]
         rewards = []
         next_step = self.current_step + 1

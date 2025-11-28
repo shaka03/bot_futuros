@@ -4,10 +4,24 @@ from config import Config
 
 class DataProcessor:
     def __init__(self):
+        """
+        Inicializa las rutas de los archivos de datos.
+        """
         self.energy_path = Config.ENERGY_FILE
         self.futures_path = Config.FUTURES_FILE
 
     def load_and_process(self):
+        """
+        Carga y procesa los datos de precios spot y futuros.
+        
+        Steps:
+            1. Carga y procesa el precio spot (energía).
+            2. Carga y procesa los futuros.
+            3. Construye una curva continua (M1, M2) por tipo de contrato.
+
+        Returns:
+            pd.DataFrame: DataFrame combinado con precios spot y futuros.
+        """
         # 1. Cargar y Procesar Precio Spot (Energía)
         df_spot = pd.read_csv(self.energy_path)
         # Filtrar precio de bolsa nacional y agrupar por día (promedio aritmético)

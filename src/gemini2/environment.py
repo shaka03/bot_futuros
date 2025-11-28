@@ -4,7 +4,18 @@ import numpy as np
 from config import Config
 
 class EnergyTradingEnv(gym.Env):
+    """
+    Entorno de trading para contratos de futuros de energía con múltiples agentes.
+    Cada agente maneja una curva de futuros para un tipo de contrato específico.
+    """
     def __init__(self, df, train_mode=True):
+        """
+        Inicializa el entorno.
+        
+        Args:
+            df (pd.DataFrame): DataFrame con datos históricos de precios y DTM.
+            train_mode (bool): Si es True, el entorno está en modo entrenamiento.
+        """
         super(EnergyTradingEnv, self).__init__()
         self.df = df
         self.dates = df.index
@@ -29,6 +40,12 @@ class EnergyTradingEnv(gym.Env):
         self.reset()
 
     def reset(self):
+        """
+        Resetea el entorno al inicio de un nuevo episodio.
+
+        Returns:
+            obs (np.array): Observación inicial para cada agente.
+        """
         self.current_idx = 0 # Empezamos en 0, pero obs usa lógica de T-1 si es necesario
         self.positions = np.zeros((self.n_agents, Config.CURVE_SIZE)) # Contratos poseídos
         initial_cash_per_agent = Config.INITIAL_CAPITAL / self.n_agents
@@ -37,11 +54,12 @@ class EnergyTradingEnv(gym.Env):
         return self._get_obs()
 
     def _get_obs(self):
-        # Observación disponible a las 8 AM del día "current_idx"
-        # Usamos los precios de cierre de "current_idx" como si fueran los de ayer 
-        # (Asumiendo que df tiene filas T-1, T, T+1...)
-        # NOTA: Para evitar leakage estricto, en el "step" avanzamos el índice ANTES de calcular PnL
+        """
+        Obtiene la observación actual para todos los agentes.
         
+        Returns:
+            obs (np.array): Observación para cada agente.
+        """        
         obs_list = []
         row = self.df.iloc[self.current_idx]
         
@@ -63,7 +81,18 @@ class EnergyTradingEnv(gym.Env):
         return np.array(obs_list)
 
     def step(self, actions):
-        # actions: (n_agents, curve_size) -> Target Ratios
+        """
+        Ejecuta un paso en el entorno.
+        
+        Args:
+            actions (np.array): Acciones tomadas por cada agente.
+        
+        Returns:
+            next_obs (np.array): Observación siguiente para cada agente.
+            rewards (np.array): Recompensas obtenidas por cada agente.
+            done (bool): Si el episodio ha terminado.
+            info (dict): Información adicional.
+        """
         
         # 1. Datos actuales (8 AM - Momento decisión)
         today_row = self.df.iloc[self.current_idx]

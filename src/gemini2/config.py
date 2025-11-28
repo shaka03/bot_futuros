@@ -2,6 +2,10 @@ import torch
 import os
 
 class Config:
+    """
+    Configuración para el entorno de trading de futuros de energía.
+    Incluye rutas de datos, parámetros del entorno, y configuraciones de entrenamiento.
+    """
     # Rutas
     BASE_DIR = os.getcwd()
     DATA_PATH = os.path.join(BASE_DIR, "data/gold") # Ajusta si es necesario

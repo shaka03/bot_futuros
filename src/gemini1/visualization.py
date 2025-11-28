@@ -7,7 +7,17 @@ import os
 from config import Config
 
 class Visualizer:
+    """
+    Clase para visualización de resultados del agente Dual Q Learning en trading de energía.
+    Proporciona métodos para graficar PnL acumulado, comportamiento del agente y correlaciones.
+    """
     def __init__(self, save_dir=Config.SAVE_DIR):
+        """
+        Inicializa el visualizador con el directorio para guardar gráficos.
+        
+        Args:
+            save_dir (str): Directorio donde se guardarán los gráficos generados.
+        """
         self.save_dir = save_dir
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -50,6 +60,10 @@ class Visualizer:
         """
         Gráfico de doble eje: Precio Spot vs Hedge Ratio para un contrato específico.
         Permite ver si el agente 'persigue' el precio o hace reversión a la media.
+
+        Args:
+            df_results (pd.DataFrame): Debe contener 'Fecha', 'Spot_Price', y 'Hedge_Ratio_{contract_name}'
+            contract_name (str): Nombre del contrato para el cual se graficará el Hedge Ratio.
         """
         fig, ax1 = plt.subplots()
         
@@ -89,6 +103,10 @@ class Visualizer:
     def plot_scatter_correlation(self, df_results, contract_name):
         """
         Scatter plot para ver la correlación directa entre Nivel de Precios y Posición.
+
+        Args:
+            df_results (pd.DataFrame): Debe contener 'Spot_Price' y 'Hedge_Ratio_{contract_name}'
+            contract_name (str): Nombre del contrato para el cual se graficará la correlación.
         """
         plt.figure(figsize=(8, 8))
         col_name = f'Hedge_Ratio_{contract_name}'

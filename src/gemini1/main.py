@@ -13,6 +13,18 @@ sys.path.append(library_path)
 from load_data import load_data_files
 
 def main():
+    """
+    Proceso principal para entrenar y evaluar un agente MADDPG en un entorno de cobertura energética.
+    Incluye preparación de datos, entrenamiento del agente, backtesting y visualización de resultados.
+    
+    Steps:
+        1. Preparar Datos: Cargar y procesar datos históricos de precios y contratos.
+        2. Inicializar Entorno y Agentes: Configurar el entorno de simulación y el agente MADDPG.
+        3. Loop de Entrenamiento: Entrenar el agente a través de múltiples episodios.
+        4. Loop de Prueba: Evaluar el agente en datos de prueba y recolectar métricas.
+        5. Visualización: Generar gráficos para analizar el desempeño del agente.
+        6. Guardar Resultados: Almacenar gráficos en la carpeta de resultados.
+    """
     # 1. Preparar Datos
     print("Procesando datos...")
     load_data_files() # Cargar y guardar datos

@@ -6,7 +6,19 @@ from networks import Actor, Critic
 from buffer import ReplayBuffer
 
 class Agent:
+    """
+    Clase que representa un agente MADDPG con su actor y crítico.
+    """
     def __init__(self, state_dim, action_dim, all_state_dim, all_action_dim):
+        """
+        Inicializa el agente con sus redes actor y crítico.
+        
+        Args:
+            state_dim (int): Dimensión del estado del agente.
+            action_dim (int): Dimensión de la acción del agente.
+            all_state_dim (int): Dimensión del estado global (todos los agentes).
+            all_action_dim (int): Dimensión de la acción global (todos los agentes).
+        """
         self.actor = Actor(state_dim, action_dim, hidden_dim=Config.HIDDEN_DIM).to(Config.DEVICE)
         self.actor_target = Actor(state_dim, action_dim, hidden_dim=Config.HIDDEN_DIM).to(Config.DEVICE)
         self.actor_target.load_state_dict(self.actor.state_dict())
@@ -18,6 +30,16 @@ class Agent:
         self.critic_optimizer = torch.optim.Adam(self.critic.parameters(), lr=Config.LR_CRITIC)
 
     def select_action(self, state, noise=0.0):
+        """
+        Selecciona una acción basada en el estado actual del agente.
+        
+        Args:
+            state (np.array): Estado actual del agente.
+            noise (float): Magnitud del ruido a añadir para exploración.
+        
+        Returns:
+            np.array: Acción seleccionada.
+        """
         state = torch.FloatTensor(state).unsqueeze(0).to(Config.DEVICE)
         action = self.actor(state).cpu().data.numpy()[0]
         if noise != 0:
@@ -25,7 +47,18 @@ class Agent:
         return np.clip(action, -1, 1)
 
 class MADDPG:
+    """
+    Clase que representa el algoritmo MADDPG para múltiples agentes.
+    """
     def __init__(self, n_agents, state_dims, action_dims):
+        """
+        Inicializa el MADDPG con múltiples agentes.
+        
+        Args:
+            n_agents (int): Número de agentes.
+            state_dims (list): Lista de dimensiones de estado para cada agente.
+            action_dims (list): Lista de dimensiones de acción para cada agente.
+        """
         self.agents = []
         self.n_agents = n_agents
         
@@ -38,6 +71,12 @@ class MADDPG:
         self.memory = ReplayBuffer(Config.BUFFER_CAPACITY, n_agents, state_dims[0], action_dims[0], Config.DEVICE)
 
     def update(self, batch_size):
+        """
+        Actualiza las redes actor y crítico de todos los agentes.
+        
+        Args:
+            batch_size (int): Tamaño del lote para el entrenamiento.
+        """
         if self.memory.size < batch_size:
             return
 

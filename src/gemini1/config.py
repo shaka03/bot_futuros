@@ -4,8 +4,12 @@ import os
 DATA_PATH = os.path.join(os.getcwd(), "data/gold")
 
 class Config:
+    """
+    Configuración para el entrenamiento del agente DDPG en el entorno de futuros de energía.
+    Contiene parámetros de entorno, rutas de archivos y configuración de entrenamiento.
+    """
+
     # Rutas de archivos (ajustar según ubicación)
-    
     ENERGY_FILE = os.path.join(DATA_PATH, "datos_energia.csv")
     FUTURES_FILE = os.path.join(DATA_PATH, "datos_futuros.csv")
     SAVE_DIR = os.path.join(os.getcwd(), "results/resultados_img_v1")
