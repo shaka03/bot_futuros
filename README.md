@@ -39,13 +39,13 @@ pip install torch pandas numpy gymnasium matplotlib seaborn
 
 El sistema espera dos archivos CSV en el directorio raíz:
 
-datos_energia.csv: Precios de bolsa (Spot).
+* `datos_energia.csv`: Precios de bolsa (Spot).
 
-Columnas clave: FechaHora, Valor (Precio), CodigoVariable (debe contener 'PB_Nal').
+  * Columnas clave: FechaHora, Valor (Precio), CodigoVariable (debe contener 'PB_Nal').
 
-datos_futuros.csv: Precios de cierre de contratos derivados.
+* `datos_futuros.csv`: Precios de cierre de contratos derivados.
 
-Columnas clave: Fecha, Tipo (ELM, ELS...), Mes, Año, Precio.
+  * Columnas clave: Fecha, Tipo (ELM, ELS...), Mes, Año, Precio.
 
 ## 🧠 Lógica del Agente
 
