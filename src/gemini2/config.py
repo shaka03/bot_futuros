@@ -5,8 +5,8 @@ class Config:
     # Rutas
     BASE_DIR = os.getcwd()
     DATA_PATH = os.path.join(BASE_DIR, "data/gold") # Ajusta si es necesario
-    ENERGY_FILE = "datos_energia.csv"
-    FUTURES_FILE = "datos_futuros.csv"
+    ENERGY_FILE = os.path.join(DATA_PATH, "datos_energia.csv")
+    FUTURES_FILE = os.path.join(DATA_PATH, "datos_futuros.csv")
     IMG_DIR = os.path.join(BASE_DIR, "results/resultados_img_v2")
 
     # Definición del Entorno de Mercado

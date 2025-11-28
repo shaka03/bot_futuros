@@ -10,13 +10,6 @@ class Config:
     FUTURES_FILE = os.path.join(DATA_PATH, "datos_futuros.csv")
     SAVE_DIR = os.path.join(os.getcwd(), "results/resultados_img_v1")
 
-    # Configuración de Datos
-    COD_VARIABLE_COL = "CodigoVariable" # Nombre de la columna para el código de variable
-    COD_VARIABLE = ["PB_Nal"]  # Código de variable para precio spot nacional
-    FECHA_SPOT_COL = "FechaHora"  # Nombre de la columna de fecha en datos de energía
-    FECHA_FUT_COL = "Fecha"  # Nombre de la columna de fecha en datos de futuros
-    PRECIO_COL = "Precio"  # Nombre de la columna de precio en datos de futuros
-
     # Configuración del Entorno
     CONTRACT_TYPES = ["ELM", "ELS", "MTB", "DTB", "NTB"]
     INITIAL_CAPITAL = 1e9  # 1000 Millones COP

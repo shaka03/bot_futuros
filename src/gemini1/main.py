@@ -159,7 +159,7 @@ def main():
         viz.plot_hedge_ratio_vs_spot(df_results, c_name)
         viz.plot_scatter_correlation(df_results, c_name)
         
-    print("Proceso finalizado. Revise la carpeta 'resultados_img'.")
+    print(f"Proceso finalizado. Revise la carpeta '{Config.SAVE_DIR}'")
 
 if __name__ == "__main__":
     main()

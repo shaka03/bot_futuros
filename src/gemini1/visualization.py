@@ -4,9 +4,10 @@ import pandas as pd
 import seaborn as sns
 import numpy as np
 import os
+from config import Config
 
 class Visualizer:
-    def __init__(self, save_dir='resultados_img'):
+    def __init__(self, save_dir=Config.SAVE_DIR):
         self.save_dir = save_dir
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
