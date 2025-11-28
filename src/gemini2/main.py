@@ -1,10 +1,15 @@
 import numpy as np
-from load_data import load_data_files
+import os
 from config import Config
 from data_processor import DataProcessor
 from environment import EnergyTradingEnv
 from maddpg import MADDPG
 from visualization import Visualizer
+
+import sys
+library_path = os.path.join(os.getcwd(), "src")
+sys.path.append(library_path)
+from load_data import load_data_files
 
 def main():
     # 1. Datos

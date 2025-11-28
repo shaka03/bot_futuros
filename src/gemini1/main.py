@@ -1,11 +1,16 @@
 import numpy as np
 import pandas as pd
+import os
 from config import Config
-from load_data import load_data_files
 from data_processor import DataProcessor
 from environment import EnergyHedgingEnv
 from maddpg import MADDPG
 from visualization import Visualizer
+
+import sys
+library_path = os.path.join(os.getcwd(), "src")
+sys.path.append(library_path)
+from load_data import load_data_files
 
 def main():
     # 1. Preparar Datos
