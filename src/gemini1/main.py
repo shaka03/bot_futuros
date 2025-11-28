@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from config import Config
+from load_data import load_data_files
 from data_processor import DataProcessor
 from environment import EnergyHedgingEnv
 from maddpg import MADDPG
@@ -9,6 +10,7 @@ from visualization import Visualizer
 def main():
     # 1. Preparar Datos
     print("Procesando datos...")
+    load_data_files() # Cargar y guardar datos
     dp = DataProcessor()
     full_data = dp.load_and_process()
     

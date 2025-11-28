@@ -1,4 +1,5 @@
 import numpy as np
+from load_data import load_data_files
 from config import Config
 from data_processor import DataProcessor
 from environment import EnergyTradingEnv
@@ -7,6 +8,7 @@ from visualization import Visualizer
 
 def main():
     # 1. Datos
+    load_data_files() # Cargar y guardar datos
     dp = DataProcessor()
     df = dp.load_and_process()
     print(f"Datos procesados: {df.shape[0]} días de trading.")

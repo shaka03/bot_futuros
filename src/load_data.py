@@ -29,7 +29,7 @@ def load_data_files():
 
     # Aquí puedes agregar más lógica para procesar o guardar los datos cargados
     print("Proceso completado.")
-    return df_energia, df_futuros
+    return None #df_energia, df_futuros
 
 if __name__ == "__main__":
     load_data_files()
