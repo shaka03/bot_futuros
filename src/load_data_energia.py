@@ -8,7 +8,7 @@ Identificadores de datasets SIMEM de energía:
 - Demanda eléctrica: "14fabb"
 - Precios de mercado: "EC6945"
 - Aportes hídricos: "BA1C55"
-- Generación: "D4D3E3"
+- Generación real: "055A4D"
 """
 
 #%% Funciones
@@ -86,21 +86,25 @@ def load_data(
     """
     print("Cargando datos de energía...")
     # Precios de mercado
+    ## Precos por hora
     id_dataset_precios = "EC6945"
     df_precios = get_data(id_dataset_precios, fecha_inicio_str, fecha_fin_str)
 
     # Demanda eléctrica
+    ## Demanda por hora, regulada y no regulada
     #id_dataset_demanda = "14fabb"
     #df_demanda = get_data(id_dataset_demanda, fecha_inicio_str, fecha_fin_str)
 
     # Aportes hídricos
+    ## Aportes por cuenca, por día
     #id_dataset_aportes = "BA1C55"
     #df_aportes = get_data(id_dataset_aportes, fecha_inicio_str, fecha_fin_str)
 
     # Generación
-    #id_dataset_generacion = "D4D3E3"
+    ## Generación por hora, por planta y agente
+    #id_dataset_generacion = "055A4D"
     #df_generacion = get_data(id_dataset_generacion, fecha_inicio_str, fecha_fin_str)
     
     print("✅ Datos de energía cargados correctamente")
 
-    return df_precios
+    return df_precios#, df_demanda, df_aportes, df_generacion
