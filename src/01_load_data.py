@@ -31,12 +31,21 @@ def load_data_files():
     print("Iniciando carga de datos...")
     
     # Cargar datos de XM
-    dict_xm_files =get_data_energia(
-        fecha_inicio_str="2024-01-01",
-        fecha_fin_str=dt.datetime.now().strftime("%Y-%m-%d"),
-        data_path=Config.RAW_DATA_PATH
-    )
+    #dict_xm_files =get_data_energia(
+    #    fecha_inicio_str="2024-01-01",
+    #    fecha_fin_str=dt.datetime.now().strftime("%Y-%m-%d"),
+    #    data_path=Config.RAW_DATA_PATH
+    #)
 
+    dict_xm_files = {
+        "DEMANDA": "datos_crudos_DEMANDA.csv",
+        "PRECIOS": "datos_crudos_PRECIOS.csv",
+        "PRECIOS_PONDERADOS": "datos_crudos_PRECIOS_PONDERADOS.csv",
+        "APORTES_HIDRICOS": "datos_crudos_APORTES_HIDRICOS.csv",
+        "NIVELES_EMBALSE": "datos_crudos_NIVELES_EMBALSE.csv",
+        "DISPONIBILIDAD_REAL": "datos_crudos_DISPONIBILIDAD_REAL.csv",
+        "GENERACION_REAL": "datos_crudos_GENERACION_REAL.csv"
+    }
     # Procesar datos de XM
     print("Procesando datos de XM...")
     for nombre, file_name in dict_xm_files.items():

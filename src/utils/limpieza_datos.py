@@ -329,6 +329,10 @@ def procesar_aportes_hidricos(df: pd.DataFrame) -> pd.DataFrame:
     df_final.rename(columns={"AportesHidricosEnergia": "AportesHidricos_GWh"}, inplace=True)
 
     df_final = df_final[["Fecha", "AportesHidricos_GWh"]]
+
+    # Promedio movil de los último 7 días
+    df_final["AportesHidricos_GWh_MA7"] = df_final["AportesHidricos_GWh"].rolling(window=7, min_periods=1).mean()
+
     return df_final
 
 
@@ -378,6 +382,10 @@ def procesar_niveles_embalse(df: pd.DataFrame) -> pd.DataFrame:
     df_final.rename(columns={"Valor": "NivelEmbalse"}, inplace=True)
 
     df_final = df_final[["Fecha", "NivelEmbalse"]]
+
+    # Promedio movil de los último 7 días
+    df_final["NivelEmbalse_MA7"] = df_final["NivelEmbalse"].rolling(window=7, min_periods=1).mean()
+    
     return df_final
 
 
@@ -516,5 +524,10 @@ def procesar_generacion(df: pd.DataFrame) -> pd.DataFrame:
     df_final.rename(columns={v: f"Generacion_{v}_kWh" for v in columns_to_fill}, inplace=True)
 
     df_final = df_final[["Fecha"] + [f"Generacion_{v}_kWh" for v in columns_to_fill]]
+
+    # Porcentaje de generación de cada tipo respecto al total
+    columns_to_fill = [col for col in df_final.columns if col not in ["Fecha", "Generacion_Total_kWh"]]
+    for col in columns_to_fill:
+        df_final[f"{col}_Pct"] = df_final[col] / df_final["Generacion_Total_kWh"] * 100 
 
     return df_final
