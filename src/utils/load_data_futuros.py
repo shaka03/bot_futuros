@@ -91,12 +91,12 @@ def transformar_precio_cierre(df):
             "Diciembre": "12"
         }
     ) + "-01", errors="coerce")
-    df_long["FechaFinContrato"] = df_long["Fecha2"] + pd.offsets.MonthEnd(0)
-    df_long = df_long[(df_long["Fecha"] <= df_long["FechaFinContrato"])]
+    df_long["FechaVencimientoContrato"] = df_long["Fecha2"] + pd.offsets.MonthEnd(0)
+    df_long = df_long[(df_long["Fecha"] <= df_long["FechaVencimientoContrato"])]
     df_long = df_long.dropna(subset=["Precio"])
 
     # Reordenar columnas
-    df_final = df_long[["Contrato", "Tipo", "Mes", "Año", "Fecha", "Precio"]]
+    df_final = df_long[["Contrato", "Tipo", "Mes", "Año", "Fecha", "FechaVencimientoContrato", "Precio"]]
     
     # Cambiar nombre
     df_final.rename(columns={"Contrato": "Nemotecnico"}, inplace=True)
