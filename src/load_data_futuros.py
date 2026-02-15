@@ -6,34 +6,33 @@ import warnings
 warnings.filterwarnings("ignore")
 
 #%% Parámetros
+class Config:
+    # Ruta de los datos
+    DATA_PATH = os.path.join(os.getcwd(), "data/raw")
 
-# Ruta de los datos
-DATA_PATH = os.path.join(os.getcwd(), "data/raw")
+    # Diccionario de meses
+    MAP_MESES = {
+        "F": "Enero",
+        "G": "Febrero",
+        "H": "Marzo",
+        "J": "Abril",
+        "K": "Mayo",
+        "M": "Junio",
+        "N": "Julio",
+        "Q": "Agosto",
+        "U": "Septiembre",
+        "V": "Octubre",
+        "X": "Noviembre",
+        "Z": "Diciembre"
+    }
 
-# Diccionario de meses
-MAP_MESES = {
-    "F": "Enero",
-    "G": "Febrero",
-    "H": "Marzo",
-    "J": "Abril",
-    "K": "Mayo",
-    "M": "Junio",
-    "N": "Julio",
-    "Q": "Agosto",
-    "U": "Septiembre",
-    "V": "Octubre",
-    "X": "Noviembre",
-    "Z": "Diciembre"
-}
-
-# Lista contratos
-LISTA_CONTRATOS = [
-    "ELM",
-    "MTB",
-    "DTB",
-    "NTB"
-]
-
+    # Lista contratos
+    LISTA_CONTRATOS = [
+        "ELM",
+        "MTB",
+        "DTB",
+        "NTB"
+    ]
 #%% Funciones
 
 ## Precios cierre
@@ -66,7 +65,7 @@ def transformar_precio_cierre(df):
     df_long["Tipo"] = df_long["Contrato"].str[:3]
 
     # Mes = letra 4 convertida
-    df_long["Mes"] = df_long["Contrato"].str[3].map(MAP_MESES)
+    df_long["Mes"] = df_long["Contrato"].str[3].map(Config.MAP_MESES)
 
     # Año = posiciones 5-6 convertidas a 20xx
     df_long["Año"] = df_long["Contrato"].str[4:6].astype(int).apply(lambda x: 2000 + x)
@@ -74,9 +73,30 @@ def transformar_precio_cierre(df):
     # Fecha = Nemo original
     df_long["Fecha"] = df_long["Nemo"]
 
+    # Validación fecha y precio. Ejemplo: si la fecha es de febrero de 2024 y hay precio de enero 2024, eliminar ese registro
+    df_long["Fecha"] = pd.to_datetime(df_long["Fecha"], errors="coerce")
+    df_long["Fecha2"] = pd.to_datetime(df_long["Año"].astype(str) + "-" + df_long["Mes"].map(
+        {
+            "Enero": "01",
+            "Febrero": "02",
+            "Marzo": "03",
+            "Abril": "04",
+            "Mayo": "05",
+            "Junio": "06",
+            "Julio": "07",
+            "Agosto": "08",
+            "Septiembre": "09",
+            "Octubre": "10",
+            "Noviembre": "11",
+            "Diciembre": "12"
+        }
+    ) + "-01", errors="coerce")
+    df_long["FechaFinContrato"] = df_long["Fecha2"] + pd.offsets.MonthEnd(0)
+    df_long = df_long[(df_long["Fecha"] <= df_long["FechaFinContrato"])]
+    df_long = df_long.dropna(subset=["Precio"])
+
     # Reordenar columnas
     df_final = df_long[["Contrato", "Tipo", "Mes", "Año", "Fecha", "Precio"]]
-    df_final["Fecha"] = pd.to_datetime(df_final["Fecha"], errors="coerce")
     
     # Cambiar nombre
     df_final.rename(columns={"Contrato": "Nemotecnico"}, inplace=True)
@@ -84,7 +104,7 @@ def transformar_precio_cierre(df):
     return df_final
 
 
-def cargar_datos_futuros():
+def cargar_datos_futuros(nombre_archivo: str) -> pd.DataFrame:
     """
     Carga y organiza los datos de precios de cierre de futuros desde archivos Excel.
     
@@ -95,10 +115,10 @@ def cargar_datos_futuros():
     """
     # Precios cierre futuros
     df_cierre_list = []
-    for con in LISTA_CONTRATOS:
+    for con in Config.LISTA_CONTRATOS:
         # Cargar datos
         df = pd.read_excel(
-            os.path.join(DATA_PATH, "Cierre.xlsx"),
+            os.path.join(Config.DATA_PATH, nombre_archivo),
             sheet_name=f"Precio cierre {con}",
             skiprows=1
         )
@@ -109,10 +129,10 @@ def cargar_datos_futuros():
     df_cierre_futuros = pd.concat(df_cierre_list, ignore_index=True)
 
     # Obtener ELS
-    df_els = df_cierre_futuros[df_cierre_futuros["Tipo"] == "ELM"]
-    df_els["Tipo"] = "ELS"
-    df_els["Nemotecnico"] = df_els["Nemotecnico"].str.replace("ELM", "ELS", regex=False)
-    df_cierre_futuros = pd.concat([df_cierre_futuros, df_els], ignore_index=True)
+    #df_els = df_cierre_futuros[df_cierre_futuros["Tipo"] == "ELM"]
+    #df_els["Tipo"] = "ELS"
+    #df_els["Nemotecnico"] = df_els["Nemotecnico"].str.replace("ELM", "ELS", regex=False)
+    #df_cierre_futuros = pd.concat([df_cierre_futuros, df_els], ignore_index=True)
     
     return df_cierre_futuros
 
@@ -128,8 +148,8 @@ def cargar_datos_convocatorias():
         DataFrames con los datos organizados de convocatorias y precios de referencia.
     """
     # Cargar datos
-    conv = pd.read_excel(os.path.join(DATA_PATH, "Convocatorias.xlsx"), sheet_name="Resultados Convocatorias",skiprows=12,usecols="D:J")
-    refe = pd.read_excel(os.path.join(DATA_PATH, "Convocatorias.xlsx"), sheet_name="Precios de referencia",skiprows=4,usecols="D:G")
+    conv = pd.read_excel(os.path.join(Config.DATA_PATH, "Convocatorias.xlsx"), sheet_name="Resultados Convocatorias",skiprows=12,usecols="D:J")
+    refe = pd.read_excel(os.path.join(Config.DATA_PATH, "Convocatorias.xlsx"), sheet_name="Precios de referencia",skiprows=4,usecols="D:G")
 
     # Organizar Convocatorias
     conv = conv.rename(
@@ -151,7 +171,7 @@ def cargar_datos_convocatorias():
     )
 
     ## Convertir la letra del mes a número
-    conv["Mes"] = conv["MesLetra"].map(MAP_MESES)
+    conv["Mes"] = conv["MesLetra"].map(Config.MAP_MESES)
 
     ## Convertir año de 2 dígitos a formato completo
     conv["Año"] = conv["Año2d"].astype(int) + 2000
@@ -193,7 +213,7 @@ def cargar_datos_convocatorias():
     refe["Año"] = "20" + refe["Nemotecnico"].str[4:6]
     refe["Año"] = refe["Año"].astype(int)
     ## Mes → se toma la 4ta letra del nemotécnico
-    refe["Mes"] =refe["Nemotecnico"].str[3].map(MAP_MESES)
+    refe["Mes"] =refe["Nemotecnico"].str[3].map(Config.MAP_MESES)
 
     return conv, refe
 
@@ -222,7 +242,7 @@ def transformar_neg(df):
     df["Tipo"] = df["Contrato"].str[:3]
 
     # Mes = 4ta letra convertida
-    df["Mes"] = df["Contrato"].str[3].map(MAP_MESES)
+    df["Mes"] = df["Contrato"].str[3].map(Config.MAP_MESES)
 
     # Año = posiciones 5-6 → 20xx
     df["Año"] = df["Contrato"].str[4:6].astype(int).apply(lambda x: 2000 + x)
@@ -240,7 +260,7 @@ def cargar_datos_negociacion():
         DataFrame con los datos organizados de negociación electrónica.
     """
     # Cargar datos
-    df_neg = pd.read_excel(os.path.join(DATA_PATH, "Neg_Electronica.xls"), sheet_name="Mejores Puntas")
+    df_neg = pd.read_excel(os.path.join(Config.DATA_PATH, "Neg_Electronica.xls"), sheet_name="Mejores Puntas")
 
     # Organizar datos
     df_neg = df_neg.rename(
@@ -293,7 +313,7 @@ def cargar_datos_mixta():
     """
     Carga los datos de negociación mixta desde un archivo Excel.
     """
-    neg_mixta = pd.read_excel(os.path.join(DATA_PATH, "Neg_Mixta.xlsx"), sheet_name="Órdenes_Mixta")
+    neg_mixta = pd.read_excel(os.path.join(Config.DATA_PATH, "Neg_Mixta.xlsx"), sheet_name="Órdenes_Mixta")
 
     return neg_mixta
 
@@ -309,8 +329,8 @@ def cargar_ultimas():
         DataFrames con los datos organizados de las últimas negociaciones y el resumen.
     """
     # Cargar datos
-    ultimas = pd.read_excel(os.path.join(DATA_PATH, "Ultimas.xlsx"), sheet_name="Negociaciones", usecols="A:J")
-    resumen = pd.read_excel(os.path.join(DATA_PATH, "Ultimas.xlsx"), sheet_name="Resumen", skiprows=1, usecols="B:D")
+    ultimas = pd.read_excel(os.path.join(Config.DATA_PATH, "Ultimas.xlsx"), sheet_name="Negociaciones", usecols="A:J")
+    resumen = pd.read_excel(os.path.join(Config.DATA_PATH, "Ultimas.xlsx"), sheet_name="Resumen", skiprows=1, usecols="B:D")
 
     # Organizar ultimas
     ultimas = ultimas.drop(columns=["Mes contrato"])
@@ -328,7 +348,7 @@ def cargar_ultimas():
     )
 
     ## Mes → se toma la 4ta letra del nemotécnico
-    ultimas["Mes"] = ultimas["Nemotecnico"].str[3].map(MAP_MESES)
+    ultimas["Mes"] = ultimas["Nemotecnico"].str[3].map(Config.MAP_MESES)
 
     ## Año → se toma la posición 5 y 6, y se convierte a 20XX
     ultimas["Año"] = "20" + ultimas["Nemotecnico"].str[4:6]
@@ -380,7 +400,13 @@ def get_data_futuros():
     """
     print("Cargando datos futuros...")
     # Precios cierre futuros
-    df_cierre_futuros = cargar_datos_futuros()
+    list_file_precios_fut = [x for x in os.listdir(Config.DATA_PATH) if x.startswith("Cierre") and x.endswith(".xlsx")]
+    list_df = []
+    for file in list_file_precios_fut:
+        df = cargar_datos_futuros(file)
+        list_df.append(df)
+
+    df_cierre_futuros = pd.concat(list_df, ignore_index=True)
 
     # Convocatorias
     #conv, refe = cargar_datos_convocatorias()

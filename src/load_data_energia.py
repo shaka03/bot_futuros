@@ -2,14 +2,29 @@
 from pydataxm.pydatasimem import CatalogSIMEM, ReadSIMEM
 import datetime as dt
 import pandas as pd
+import calendar
 
 """
 Identificadores de datasets SIMEM de energía:
 - Demanda eléctrica: "14fabb"
 - Precios de mercado: "EC6945"
+- Precios ponderados: "96D56E"
 - Aportes hídricos: "BA1C55"
+- Niveles de embalse: "BD26DC"
+- Disponibilidad real: "9E77E5"
 - Generación real: "055A4D"
 """
+
+class DatasetSIMEM:
+    ID_DICT = {
+        "DEMANDA": "14fabb",
+        "PRECIOS": "EC6945",
+        "PRECIOS_PONDERADOS": "96D56E",
+        "APORTES_HIDRICOS": "BA1C55",
+        "NIVELES_EMBALSE": "BD26DC",
+        "DISPONIBILIDAD_REAL": "9E77E5",
+        "GENERACION_REAL": "E17D25"
+    }
 
 #%% Funciones
 def get_data(
@@ -49,10 +64,6 @@ def get_data(
             keep = False
         else:
             reader = ReadSIMEM(id_dataset, fecha_inicio_str, fecha_part_str)
-
-        if id_dataset == "EC6945":
-            df = reader.main(filter=False)
-            df = df[df["CodigoVariable"] == "PB_Nal"]
         
         df = reader.main(filter=False)
         list_df.append(df)
@@ -68,7 +79,8 @@ def get_data(
 def load_data(
         fecha_inicio_str: str = "2024-01-01",
         fecha_fin_str: str = dt.datetime.now().strftime("%Y-%m-%d"),
-) -> pd.DataFrame:
+        data_path: str = "data/raw"
+) -> dict:
     """
     Carga datos de SIMEM y los guarda en un archivo CSV.
 
@@ -84,27 +96,14 @@ def load_data(
     pd.DataFrame
         DataFrame con los datos cargados desde SIMEM.
     """
-    print("Cargando datos de energía...")
-    # Precios de mercado
-    ## Precos por hora
-    id_dataset_precios = "EC6945"
-    df_precios = get_data(id_dataset_precios, fecha_inicio_str, fecha_fin_str)
-
-    # Demanda eléctrica
-    ## Demanda por hora, regulada y no regulada
-    #id_dataset_demanda = "14fabb"
-    #df_demanda = get_data(id_dataset_demanda, fecha_inicio_str, fecha_fin_str)
-
-    # Aportes hídricos
-    ## Aportes por cuenca, por día
-    #id_dataset_aportes = "BA1C55"
-    #df_aportes = get_data(id_dataset_aportes, fecha_inicio_str, fecha_fin_str)
-
-    # Generación
-    ## Generación por hora, por planta y agente
-    #id_dataset_generacion = "055A4D"
-    #df_generacion = get_data(id_dataset_generacion, fecha_inicio_str, fecha_fin_str)
+    print("Cargando datos de XM...")
+    dict_files = {}
+    for nombre, id_dataset in DatasetSIMEM.ID_DICT.items():
+        print(f"Cargando {nombre}...")
+        df = get_data(id_dataset, fecha_inicio_str, fecha_fin_str)
+        df.to_csv(f"{data_path}/datos_crudos_{nombre}.csv", index=False)
+        dict_files[nombre] = f"datos_crudos_{nombre}.csv"
     
     print("✅ Datos de energía cargados correctamente")
 
-    return df_precios#, df_demanda, df_aportes, df_generacion
+    return dict_files

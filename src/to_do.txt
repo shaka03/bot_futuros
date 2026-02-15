@@ -1,0 +1,5 @@
+1. Actualizar variables
+2. Agregar variable demanda ponderada diaria, y promedios horas según los futuros
+3. Agregar ONI
+4. Hacer EDA
+5. Sacar información sintética de una planta con base en su distribución de probabilidad

@@ -3,3 +3,5 @@ docs/.DS_Store
 src/.DS_Store
 notebooks/.DS_Store
 .DS_Store
+docs/Trabajo_Integrador/Trabajo_Integrador_Doc
+data/raw/*.csv
