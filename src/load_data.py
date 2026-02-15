@@ -34,7 +34,7 @@ def load_data_files():
     dict_xm_files =get_data_energia(
         fecha_inicio_str="2024-01-01",
         fecha_fin_str=dt.datetime.now().strftime("%Y-%m-%d"),
-        data_path=RAW_DATA_PATH
+        data_path=Config.RAW_DATA_PATH
     )
 
     # Procesar datos de XM
