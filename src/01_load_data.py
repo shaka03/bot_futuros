@@ -6,11 +6,11 @@ import pandas as pd
 import datetime as dt
 
 # Librerías para cargar datos
-from load_data_energia import load_data as get_data_energia
-from load_data_futuros import get_data_futuros
+from utils.load_data_energia import load_data as get_data_energia
+from utils.load_data_futuros import get_data_futuros
 
 # Librerías para procesar datos
-from limpieza_datos import (
+from utils.limpieza_datos import (
     procesar_demanda,
     procesar_precios,
     procesar_precios_ponderados,

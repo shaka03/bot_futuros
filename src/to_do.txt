@@ -1,2 +1,5 @@
-1. Agregar ONI
-2. Hacer EDA
+1. Hacer EDA
+2. Unir con los datos de noticias*
+3. Hacer agente. Propuesta: MADDPG y MAPPO
+4. Analizar estrategias y modificar
+5. Análisis de resultados y conclusiones
