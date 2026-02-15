@@ -16,3 +16,4 @@ torchvision==0.24.1
 xlrd==2.0.2
 gymnasium==1.2.2
 sodapy==2.2.0
+plotly==6.5.2
