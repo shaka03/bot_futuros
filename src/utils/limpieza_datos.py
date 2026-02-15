@@ -325,9 +325,10 @@ def procesar_aportes_hidricos(df: pd.DataFrame) -> pd.DataFrame:
     df_final = df_final.reset_index()  # Volver a tener "Fecha" como columna normal
 
     # Renombrar columnas para mayor claridad
-    df_final.rename(columns={"AportesHidricosEnergia": "AportesHidricos_kWh"}, inplace=True)
+    df_final["AportesHidricosEnergia"] = df_final["AportesHidricosEnergia"] / 1000000  # Convertir de kWh a GWh
+    df_final.rename(columns={"AportesHidricosEnergia": "AportesHidricos_GWh"}, inplace=True)
 
-    df_final = df_final[["Fecha", "AportesHidricos_kWh"]]
+    df_final = df_final[["Fecha", "AportesHidricos_GWh"]]
     return df_final
 
 

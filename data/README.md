@@ -143,4 +143,5 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 | Mes | Mes de vencimiento del contrato. | Categórica (String) |
 | Año | Año de vencimiento del contrato. | Numérica (Integer) |
 | Fecha | Fecha de la cotización (YYYY-MM-DD). | Temporal (Date) |
+| FechaVencimientoContrato | Fecha de de vencimiento del comtrato (YYYY-MM-DD). | Temporal (Date) |
 | Precio | Precio de cierre del contrato de futuro (COP/kWh). | Numérica (Float) |
