@@ -59,7 +59,20 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 
 ---
 
-## 3. datos_DISPONIBILIDAD_REAL.csv
+## 3. datos_DEMANDA_COMPRADOR.csv
+**Descripción:** Registra la demanda de energía eléctrica desglosada por bloques horarios y el total diario, para un comprador no regulado de electricidad.
+
+| Columna | Descripción | Tipo de Variable |
+| :--- | :--- | :--- |
+| Fecha | Fecha del registro (YYYY-MM-DD). | Temporal (Date) |
+| Demanda_kWh_0-7 | Demanda de energía en el bloque de 00:00 a 07:00 (kWh). | Numérica (Float) |
+| Demanda_kWh_7-17 | Demanda de energía en el bloque de 07:00 a 17:00 (kWh). | Numérica (Float) |
+| Demanda_kWh_17-23 | Demanda de energía en el bloque de 17:00 a 24:00 (kWh). | Numérica (Float) |
+| Demanda_kWh_Dia | Demanda total de energía en el día (kWh). | Numérica (Float) |
+
+---
+
+## 4. datos_DISPONIBILIDAD_REAL.csv
 **Descripción:** Indica la disponibilidad real de energía en el sistema por bloques horarios.
 
 | Columna | Descripción | Tipo de Variable |
@@ -72,7 +85,7 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 
 ---
 
-## 4. datos_GENERACION_REAL.csv
+## 5. datos_GENERACION_REAL.csv
 **Descripción:** Detalla la generación real de energía según la fuente de origen.
 
 | Columna | Descripción | Tipo de Variable |
@@ -87,7 +100,7 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 
 ---
 
-## 5. datos_NIVELES_EMBALSE.csv
+## 6. datos_NIVELES_EMBALSE.csv
 **Descripción:** Registro diario del nivel de energía almacenada en los embalses.
 
 | Columna | Descripción | Tipo de Variable |
@@ -97,7 +110,7 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 
 ---
 
-## 6. datos_PRECIOS.csv
+## 7. datos_PRECIOS.csv
 **Descripción:** Precios de la energía eléctrica en la bolsa, desglosados por bloques horarios.
 
 | Columna | Descripción | Tipo de Variable |
@@ -110,7 +123,7 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 
 ---
 
-## 7. datos_PRECIOS_PONDERADOS.csv
+## 8. datos_PRECIOS_PONDERADOS.csv
 **Descripción:** Precio promedio ponderado de la energía en el mercado.
 
 | Columna | Descripción | Tipo de Variable |
@@ -120,7 +133,7 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 
 ---
 
-## 8. precios_FUTUROS.csv
+## 9. precios_FUTUROS.csv
 **Descripción:** Cotizaciones de los contratos de futuros de energía eléctrica.
 
 | Columna | Descripción | Tipo de Variable |
