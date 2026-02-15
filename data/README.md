@@ -42,7 +42,7 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 | Columna | Descripción | Tipo de Variable |
 | :--- | :--- | :--- |
 | Fecha | Fecha del registro (YYYY-MM-DD). | Temporal (Date) |
-| AportesHidricos_kWh | Cantidad de energía aportada por recursos hídricos en kWh. | Numérica (Float) |
+| AportesHidricos_GWh | Cantidad de energía aportada por recursos hídricos en GWh. | Numérica (Float) |
 
 ---
 
