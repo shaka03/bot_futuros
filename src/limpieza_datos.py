@@ -11,7 +11,7 @@ class Config:
         }
 
 #%% Funciones de procesamiento de datos
-def procesar_demanda(df: pd.DataFrame) -> pd.DataFrame:
+def procesar_demanda(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Permite procesar el dataset de demanda, ordenando por fecha, código del agente,
     tipo de mercado y versión, y eliminando duplicados para quedarnos
@@ -100,7 +100,58 @@ def procesar_demanda(df: pd.DataFrame) -> pd.DataFrame:
             "Demanda_kWh_17-23", "Demanda_kWh_Dia"
         ]
     ]
-    return df_final
+
+    # Dataframe para comprador no regulado GECC
+    df_comprador = df_clean[df_clean["CodigoSICAgente"] == "GECC"]
+
+    df_comprador1 = df_comprador.groupby(
+        [df_comprador["FechaHora"].dt.date, "FranjaHoraria"]
+    )["Valor"].sum().reset_index()
+
+    df_comprador2 = df_comprador.groupby(
+        df_comprador["FechaHora"].dt.date
+    )["Valor"].sum().reset_index()
+    df_comprador2["FranjaHoraria"] = "Dia"
+
+    df_comprador_final = pd.concat([df_comprador1, df_comprador2], ignore_index=True)
+
+    # Renombrar columnas para mayor claridad
+    df_comprador_final.rename(columns={"FechaHora": "Fecha", "Valor": "Demanda_kWh"}, inplace=True)
+
+    # Formato wide, con columnas para cada franja horaria
+    df_comprador_final_wide = df_comprador_final.pivot(
+        index="Fecha", columns="FranjaHoraria",
+        values="Demanda_kWh"
+    ).reset_index()
+
+    # Completar fechas faltantes con demanda promediado de los 30 días anteriores
+    df_comprador_final_wide["Fecha"] = pd.to_datetime(df_comprador_final_wide["Fecha"])
+    df_comprador_final_wide.set_index("Fecha", inplace=True)
+    df_comprador_final_wide = df_comprador_final_wide.asfreq("D")  # Asegura que todas las fechas estén presentes
+    df_comprador_final_wide = df_comprador_final_wide.sort_index()  # Asegura que las fechas estén ordenadas
+    for col in ["0-7", "7-17", "17-23", "Dia"]:
+        df_comprador_final_wide[col] = df_comprador_final_wide[col].fillna(df_comprador_final_wide[col].rolling(window=30, min_periods=1).mean())
+    df_comprador_final_wide = df_comprador_final_wide.reset_index()  # Volver a tener "Fecha" como columna normal
+
+    # Renombrar columnas para mayor claridad
+    df_comprador_final_wide.rename(
+        columns={
+            "0-7": "Demanda_kWh_0-7",
+            "7-17": "Demanda_kWh_7-17",
+            "17-23": "Demanda_kWh_17-23",
+            "Dia": "Demanda_kWh_Dia"
+        },
+        inplace=True
+    )
+
+    df_comprador_final = df_comprador_final_wide[
+        [
+            "Fecha", "Demanda_kWh_0-7", "Demanda_kWh_7-17",
+            "Demanda_kWh_17-23", "Demanda_kWh_Dia"
+        ]
+    ]
+
+    return (df_final, df_comprador_final)
 
 
 def procesar_precios(df: pd.DataFrame) -> pd.DataFrame:

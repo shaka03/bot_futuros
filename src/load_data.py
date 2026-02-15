@@ -43,8 +43,9 @@ def load_data_files():
         df = pd.read_csv(os.path.join(Config.RAW_DATA_PATH, file_name))
         if nombre == "DEMANDA":
             print("  Procesando demanda...")
-            df = procesar_demanda(df.copy())
-            df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
+            df_demanda, df_comprador = procesar_demanda(df.copy())
+            df_demanda.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
+            df_comprador.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}_COMPRADOR.csv"), index=False)
         
         if nombre == "PRECIOS":
             print("  Procesando precios...")

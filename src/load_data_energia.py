@@ -2,22 +2,21 @@
 from pydataxm.pydatasimem import CatalogSIMEM, ReadSIMEM
 import datetime as dt
 import pandas as pd
-import calendar
 
 """
 Identificadores de datasets SIMEM de energía:
-- Demanda eléctrica: "14fabb"
+- Demanda eléctrica: "d55202"
 - Precios de mercado: "EC6945"
 - Precios ponderados: "96D56E"
 - Aportes hídricos: "BA1C55"
 - Niveles de embalse: "BD26DC"
 - Disponibilidad real: "9E77E5"
-- Generación real: "055A4D"
+- Generación real: "E17D25"
 """
 
 class DatasetSIMEM:
     ID_DICT = {
-        "DEMANDA": "14fabb",
+        "DEMANDA": "d55202",
         "PRECIOS": "EC6945",
         "PRECIOS_PONDERADOS": "96D56E",
         "APORTES_HIDRICOS": "BA1C55",
