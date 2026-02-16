@@ -197,13 +197,17 @@ def procesar_demanda(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     return (df_final, df_comprador_final)
 
 
-def procesar_precios(df: pd.DataFrame) -> pd.DataFrame:
+def procesar_precios(
+        df: pd.DataFrame,
+        clean_outliers: bool = False
+    ) -> pd.DataFrame:
     """
     Permite procesar el dataset de precios, ordenando por fecha y versión,
     y eliminando duplicados para quedarnos con la última versión de cada fecha/hora.
     
     Args:
         df (pd.DataFrame): DataFrame con los datos de precios a procesar.
+        clean_outliers (bool): Indica si se deben limpiar los outliers.
     
     Returns:
         pd.DataFrame: DataFrame procesado con los datos de precios ordenados y sin duplicados.
@@ -289,19 +293,23 @@ def procesar_precios(df: pd.DataFrame) -> pd.DataFrame:
     ]
 
     # Limpiar anomalías
-    cols_clean = [
-        "Precio_COP/kWh_0-7", "Precio_COP/kWh_7-17",
-        "Precio_COP/kWh_17-23", "Precio_COP/kWh_Dia"
-    ]
-    df_final = df_final.set_index("Fecha")
-    for col in cols_clean:
-        df_final = limpiar_outliers(df_final.copy(), col)
-    df_final = df_final.reset_index()
+    if clean_outliers:
+        cols_clean = [
+            "Precio_COP/kWh_0-7", "Precio_COP/kWh_7-17",
+            "Precio_COP/kWh_17-23", "Precio_COP/kWh_Dia"
+        ]
+        df_final = df_final.set_index("Fecha")
+        for col in cols_clean:
+            df_final = limpiar_outliers(df_final.copy(), col)
+        df_final = df_final.reset_index()
 
     return df_final
 
 
-def procesar_precios_ponderados(df: pd.DataFrame) -> pd.DataFrame:
+def procesar_precios_ponderados(
+        df: pd.DataFrame,
+        clean_outliers: bool = False
+    ) -> pd.DataFrame:
     """
     Permite procesar el dataset de precios ponderados, ordenando por fecha, código del agente,
     tipo de mercado y versión, y eliminando duplicados para quedarnos
@@ -309,6 +317,7 @@ def procesar_precios_ponderados(df: pd.DataFrame) -> pd.DataFrame:
     
     Args:
         df (pd.DataFrame): DataFrame con los datos de precios ponderados a procesar.
+        clean_outliers (bool): Indica si se deben limpiar los outliers.
     
     Returns:
         pd.DataFrame: DataFrame procesado con los datos de precios ponderados ordenados y sin duplicados.
@@ -351,9 +360,10 @@ def procesar_precios_ponderados(df: pd.DataFrame) -> pd.DataFrame:
     df_final = df_final[["Fecha", "Precio_Ponderado_COP/kWh"]]
 
     # Limpiar anomalías
-    df_final = df_final.set_index("Fecha")
-    df_final = limpiar_outliers(df_final.copy(), "Precio_Ponderado_COP/kWh")
-    df_final = df_final.reset_index()
+    if clean_outliers:
+        df_final = df_final.set_index("Fecha")
+        df_final = limpiar_outliers(df_final.copy(), "Precio_Ponderado_COP/kWh")
+        df_final = df_final.reset_index()
 
     return df_final
 
@@ -393,12 +403,16 @@ def procesar_aportes_hidricos(df: pd.DataFrame) -> pd.DataFrame:
     return df_final
 
 
-def procesar_niveles_embalse(df: pd.DataFrame) -> pd.DataFrame:
+def procesar_niveles_embalse(
+        df: pd.DataFrame,
+        clean_outliers: bool = True
+    ) -> pd.DataFrame:
     """
     Permite procesar el dataset de niveles de embalse, ordenando por fecha y versión.
     
     Args:
         df (pd.DataFrame): DataFrame con los datos de niveles de embalse a procesar.
+        clean_outliers (bool): Indica si se deben limpiar los outliers.
     
     Returns:
         pd.DataFrame: DataFrame procesado con los datos de niveles de embalse ordenados y sin duplicados.
@@ -441,9 +455,10 @@ def procesar_niveles_embalse(df: pd.DataFrame) -> pd.DataFrame:
     df_final = df_final[["Fecha", "NivelEmbalse"]]
 
     # Limpiar anomalías
-    df_final = df_final.set_index("Fecha")
-    df_final = limpiar_outliers(df_final.copy(), "NivelEmbalse")
-    df_final = df_final.reset_index()
+    if clean_outliers:
+        df_final = df_final.set_index("Fecha")
+        df_final = limpiar_outliers(df_final.copy(), "NivelEmbalse")
+        df_final = df_final.reset_index()
     
     return df_final
 

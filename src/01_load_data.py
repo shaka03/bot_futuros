@@ -59,12 +59,12 @@ def load_data_files():
         
         if nombre == "PRECIOS":
             print("  Procesando precios...")
-            df = procesar_precios(df.copy())
+            df = procesar_precios(df.copy(), clean_outliers=False)
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
         
         if nombre == "PRECIOS_PONDERADOS":
             print("  Procesando precios ponderados...")
-            df = procesar_precios_ponderados(df.copy())
+            df = procesar_precios_ponderados(df.copy(), clean_outliers=False)
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
         
         if nombre == "APORTES_HIDRICOS":
@@ -74,7 +74,7 @@ def load_data_files():
         
         if nombre == "NIVELES_EMBALSE":
             print("  Procesando niveles de embalse...")
-            df = procesar_niveles_embalse(df.copy())
+            df = procesar_niveles_embalse(df.copy(), clean_outliers=True)
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
 
         if nombre == "DISPONIBILIDAD_REAL":
