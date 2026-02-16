@@ -17,3 +17,4 @@ xlrd==2.0.2
 gymnasium==1.2.2
 sodapy==2.2.0
 plotly==6.5.2
+statsmodels==0.14.6
