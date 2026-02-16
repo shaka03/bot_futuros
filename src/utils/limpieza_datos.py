@@ -1,5 +1,6 @@
 #%% Importar librerías
 import pandas as pd
+import numpy as np
 
 #%% Configuración
 class Config:
@@ -11,6 +12,48 @@ class Config:
         }
 
 #%% Funciones de procesamiento de datos
+def limpiar_outliers(
+        df: pd.DataFrame,
+        col: str
+) -> pd.DataFrame:
+    
+    """
+    Permite realizar la limpieza de anomalías mediante la desviación estándar robusta,
+    usando la mediana móvil de 7 días.
+    
+    Args:
+        df (pd.DataFrame): DataFrame con los datos a procesar.
+        col (str): campo a limpiar
+    
+    Returns:
+        pd.DataFrame: DataFrame limpio.
+    """
+
+    # 1. Calcular la Mediana Móvil (Referencia Robusta)
+    # Usamos una ventana de 7 días porque la electricidad tiene ciclos semanales
+    mediana_movil = df[col].rolling(window=7, center=True).median()
+
+    # 2. Calcular el Residuo (Diferencia entre dato real y la mediana)
+    residuo = df[col] - mediana_movil
+
+    # 3. Definir el Umbral de Anomalía (Estadístico)
+    # Usamos el Rango Intercuartílico (IQR) o Desviación Estándar Robusta
+    desviacion = residuo.std()
+    umbral = 3 * desviacion  # 3 sigmas es estándar en industria
+
+    # Identificar los índices de las anomalías
+    is_outlier = abs(residuo) > umbral
+
+    # 4. CORRECCIÓN: Reemplazar por Interpolación
+    # Primero marcamos como NaN (nulo)
+    df.loc[is_outlier, col] = np.nan
+
+    # Luego interpolamos (rellenamos el hueco linealmente)
+    df[col] = df[col].interpolate(method="time")
+
+    return df
+
+
 def procesar_demanda(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Permite procesar el dataset de demanda, ordenando por fecha, código del agente,
@@ -244,6 +287,17 @@ def procesar_precios(df: pd.DataFrame) -> pd.DataFrame:
             "Precio_COP/kWh_17-23", "Precio_COP/kWh_Dia"
         ]
     ]
+
+    # Limpiar anomalías
+    cols_clean = [
+        "Precio_COP/kWh_0-7", "Precio_COP/kWh_7-17",
+        "Precio_COP/kWh_17-23", "Precio_COP/kWh_Dia"
+    ]
+    df_final = df_final.set_index("Fecha")
+    for col in cols_clean:
+        df_final = limpiar_outliers(df_final.copy(), col)
+    df_final = df_final.reset_index()
+
     return df_final
 
 
@@ -295,6 +349,12 @@ def procesar_precios_ponderados(df: pd.DataFrame) -> pd.DataFrame:
     df_final = df_final.reset_index()  # Volver a tener "Fecha" como columna normal
 
     df_final = df_final[["Fecha", "Precio_Ponderado_COP/kWh"]]
+
+    # Limpiar anomalías
+    df_final = df_final.set_index("Fecha")
+    df_final = limpiar_outliers(df_final.copy(), "Precio_Ponderado_COP/kWh")
+    df_final = df_final.reset_index()
+
     return df_final
 
 
@@ -379,6 +439,11 @@ def procesar_niveles_embalse(df: pd.DataFrame) -> pd.DataFrame:
     df_final.rename(columns={"Valor": "NivelEmbalse"}, inplace=True)
 
     df_final = df_final[["Fecha", "NivelEmbalse"]]
+
+    # Limpiar anomalías
+    df_final = df_final.set_index("Fecha")
+    df_final = limpiar_outliers(df_final.copy(), "NivelEmbalse")
+    df_final = df_final.reset_index()
     
     return df_final
 
