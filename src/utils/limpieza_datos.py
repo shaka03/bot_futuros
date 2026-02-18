@@ -68,7 +68,7 @@ def procesar_demanda(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
         pd.DataFrame: DataFrame procesado con los datos de demanda ordenados y sin duplicados.
     """
 
-    # Convertir la columna "Fecha" a formato datetime
+    # Convertir la columna "FechaHora" a formato datetime
     df["FechaHora"] = pd.to_datetime(df["FechaHora"], format="%Y-%m-%d %H:%M:%S")
 
     # Extraer el número de versión de la columna "Version" para ordenar correctamente
@@ -216,7 +216,7 @@ def procesar_precios(
     # Filtrar solo PB_Tie
     df = df[df["CodigoVariable"] == "PB_Tie"]
 
-    # Convertir la columna "Fecha" a formato datetime
+    # Convertir la columna "FechaHora" a formato datetime
     df["FechaHora"] = pd.to_datetime(df["FechaHora"], format="%Y-%m-%d %H:%M:%S")
 
     # Extraer el número de versión de la columna "Version" para ordenar correctamente

@@ -106,7 +106,7 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 | Columna | Descripción | Tipo de Variable |
 | :--- | :--- | :--- |
 | Fecha | Fecha del registro (YYYY-MM-DD). | Temporal (Date) |
-| NivelEmbalse | Nivel de energía almacenada en los embalses (kWh). | Numérica (Float) |
+| NivelEmbalse | Nivel de energía almacenada en los embalses. | Numérica (Float) |
 
 ---
 

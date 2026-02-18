@@ -31,7 +31,7 @@ def load_data_files():
     print("Iniciando carga de datos...")
     
     # Cargar datos de XM
-    dict_xm_files =get_data_energia(
+    dict_xm_files = get_data_energia(
         fecha_inicio_str="2024-01-01",
         fecha_fin_str=dt.datetime.now().strftime("%Y-%m-%d"),
         data_path=Config.RAW_DATA_PATH
@@ -92,6 +92,9 @@ def load_data_files():
     # Cargar datos de futuros
     df_futuros = get_data_futuros()
     df_futuros.to_csv(os.path.join(Config.SILVER_DATA_PATH, "precios_FUTUROS.csv"), index=False)
+
+    # Cargar datos noticias
+    
 
     # Aquí puedes agregar más lógica para procesar o guardar los datos cargados
     print("Proceso completado.")
