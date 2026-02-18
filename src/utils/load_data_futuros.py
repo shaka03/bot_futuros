@@ -116,12 +116,16 @@ def cargar_datos_futuros(nombre_archivo: str) -> pd.DataFrame:
     # Precios cierre futuros
     df_cierre_list = []
     for con in Config.LISTA_CONTRATOS:
-        # Cargar datos
-        df = pd.read_excel(
-            os.path.join(Config.DATA_PATH, nombre_archivo),
-            sheet_name=f"Precio cierre {con}",
-            skiprows=1
-        )
+        print(con)
+        try:
+            df = pd.read_excel(
+                os.path.join(Config.DATA_PATH, nombre_archivo),
+                sheet_name=f"Precio cierre {con}",
+                skiprows=1
+            )
+        except Exception as e:
+            print("No existe la hoja para el contrato", con, "en el archivo", nombre_archivo)
+            continue
         # Mantener solo columnas con datos
         cols_keep = [x for x in df.columns if not x.startswith("Unnamed")]
         df = df[cols_keep]

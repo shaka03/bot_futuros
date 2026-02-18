@@ -30,9 +30,9 @@ class Config:
 def load_data_files():
     print("Iniciando carga de datos...")
     
-    # Cargar datos de XM
+    ## Cargar datos de XM
     dict_xm_files = get_data_energia(
-        fecha_inicio_str="2024-01-01",
+        fecha_inicio_str="2022-01-01",
         fecha_fin_str=dt.datetime.now().strftime("%Y-%m-%d"),
         data_path=Config.RAW_DATA_PATH
     )
