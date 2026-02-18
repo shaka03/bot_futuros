@@ -134,7 +134,7 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 ---
 
 ## 9. precios_FUTUROS.csv
-**Descripción:** Cotizaciones de los contratos de futuros de energía eléctrica.
+**Descripción:** Precios de cierre de los contratos de futuros de energía eléctrica.
 
 | Columna | Descripción | Tipo de Variable |
 | :--- | :--- | :--- |
