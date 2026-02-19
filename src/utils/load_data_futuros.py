@@ -8,7 +8,7 @@ warnings.filterwarnings("ignore")
 #%% Parámetros
 class Config:
     # Ruta de los datos
-    DATA_PATH = os.path.join(os.getcwd(), "data/raw")
+    DATA_PATH = os.path.join(os.getcwd(), "data/1_raw")
 
     # Diccionario de meses
     MAP_MESES = {
@@ -116,7 +116,6 @@ def cargar_datos_futuros(nombre_archivo: str) -> pd.DataFrame:
     # Precios cierre futuros
     df_cierre_list = []
     for con in Config.LISTA_CONTRATOS:
-        print(con)
         try:
             df = pd.read_excel(
                 os.path.join(Config.DATA_PATH, nombre_archivo),

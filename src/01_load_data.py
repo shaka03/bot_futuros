@@ -10,7 +10,7 @@ from utils.load_data_energia import load_data as get_data_energia
 from utils.load_data_futuros import get_data_futuros
 
 # Librerías para procesar datos
-from utils.limpieza_datos import (
+from utils.preprocesamiento_datos import (
     procesar_demanda,
     procesar_precios,
     procesar_precios_ponderados,
@@ -22,31 +22,30 @@ from utils.limpieza_datos import (
 
 #%% Configuración
 class Config:
-    RAW_DATA_PATH = os.path.join(os.getcwd(), "data/raw")
-    SILVER_DATA_PATH = os.path.join(os.getcwd(), "data/silver")
+    RAW_DATA_PATH = os.path.join(os.getcwd(), "data/1_raw")
+    SILVER_DATA_PATH = os.path.join(os.getcwd(), "data/2_silver")
 
 #%% Funciones
 
 def load_data_files():
     print("Iniciando carga de datos...")
     
-    ## Cargar datos de XM
-    dict_xm_files = get_data_energia(
-        fecha_inicio_str="2022-01-01",
-        fecha_fin_str=dt.datetime.now().strftime("%Y-%m-%d"),
-        data_path=Config.RAW_DATA_PATH
-    )
-
-    #dict_xm_files = {
-    #    "DEMANDA": "datos_crudos_DEMANDA.csv",
-    #    "PRECIOS": "datos_crudos_PRECIOS.csv",
-    #    "PRECIOS_PONDERADOS": "datos_crudos_PRECIOS_PONDERADOS.csv",
-    #    "APORTES_HIDRICOS": "datos_crudos_APORTES_HIDRICOS.csv",
-    #    "NIVELES_EMBALSE": "datos_crudos_NIVELES_EMBALSE.csv",
-    #    "DISPONIBILIDAD_REAL": "datos_crudos_DISPONIBILIDAD_REAL.csv",
-    #    "GENERACION_REAL": "datos_crudos_GENERACION_REAL.csv"
-    #}
+    # Cargar datos de XM
+    #dict_xm_files = get_data_energia(
+    #    fecha_inicio_str="2022-01-01",
+    #    fecha_fin_str=dt.datetime.now().strftime("%Y-%m-%d"),
+    #    data_path=Config.RAW_DATA_PATH
+    #)
     
+    dict_xm_files = {
+        "DEMANDA": "datos_crudos_DEMANDA.csv",
+        "PRECIOS": "datos_crudos_PRECIOS.csv",
+        "PRECIOS_PONDERADOS": "datos_crudos_PRECIOS_PONDERADOS.csv",
+        "APORTES_HIDRICOS": "datos_crudos_APORTES_HIDRICOS.csv",
+        "NIVELES_EMBALSE": "datos_crudos_NIVELES_EMBALSE.csv",
+        "DISPONIBILIDAD_REAL": "datos_crudos_DISPONIBILIDAD_REAL.csv",
+        "GENERACION_REAL": "datos_crudos_GENERACION_REAL.csv"
+    }
     # Procesar datos de XM
     print("Procesando datos de XM...")
     for nombre, file_name in dict_xm_files.items():
@@ -59,12 +58,12 @@ def load_data_files():
         
         if nombre == "PRECIOS":
             print("  Procesando precios...")
-            df = procesar_precios(df.copy(), clean_outliers=False)
+            df = procesar_precios(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
         
         if nombre == "PRECIOS_PONDERADOS":
             print("  Procesando precios ponderados...")
-            df = procesar_precios_ponderados(df.copy(), clean_outliers=False)
+            df = procesar_precios_ponderados(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
         
         if nombre == "APORTES_HIDRICOS":
@@ -74,7 +73,7 @@ def load_data_files():
         
         if nombre == "NIVELES_EMBALSE":
             print("  Procesando niveles de embalse...")
-            df = procesar_niveles_embalse(df.copy(), clean_outliers=True)
+            df = procesar_niveles_embalse(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
 
         if nombre == "DISPONIBILIDAD_REAL":
@@ -93,10 +92,6 @@ def load_data_files():
     df_futuros = get_data_futuros()
     df_futuros.to_csv(os.path.join(Config.SILVER_DATA_PATH, "precios_FUTUROS.csv"), index=False)
 
-    # Cargar datos noticias
-    
-
-    # Aquí puedes agregar más lógica para procesar o guardar los datos cargados
     print("Proceso completado.")
     return None
 
