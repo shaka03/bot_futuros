@@ -25,19 +25,7 @@ class Config:
     RAW_DATA_PATH = os.path.join(os.getcwd(), "data/1_raw")
     SILVER_DATA_PATH = os.path.join(os.getcwd(), "data/2_silver")
 
-#%% Funciones
-
-def load_data_files():
-    print("Iniciando carga de datos...")
-    
-    # Cargar datos de XM
-    #dict_xm_files = get_data_energia(
-    #    fecha_inicio_str="2022-01-01",
-    #    fecha_fin_str=dt.datetime.now().strftime("%Y-%m-%d"),
-    #    data_path=Config.RAW_DATA_PATH
-    #)
-    
-    dict_xm_files = {
+    DICT_XM_FILES = {
         "DEMANDA": "datos_crudos_DEMANDA.csv",
         "PRECIOS": "datos_crudos_PRECIOS.csv",
         "PRECIOS_PONDERADOS": "datos_crudos_PRECIOS_PONDERADOS.csv",
@@ -46,9 +34,25 @@ def load_data_files():
         "DISPONIBILIDAD_REAL": "datos_crudos_DISPONIBILIDAD_REAL.csv",
         "GENERACION_REAL": "datos_crudos_GENERACION_REAL.csv"
     }
+
+#%% Funciones
+
+def load_data_files(
+        fecha_inicio_str: str,
+        fecha_fin_str: str
+    ) -> None:
+    print("Iniciando carga de datos...")
+    
+    # Cargar datos de XM
+    get_data_energia(
+        fecha_inicio_str=fecha_inicio_str,
+        fecha_fin_str=fecha_fin_str,
+        data_path=Config.RAW_DATA_PATH
+    )
+    
     # Procesar datos de XM
     print("Procesando datos de XM...")
-    for nombre, file_name in dict_xm_files.items():
+    for nombre, file_name in Config.DICT_XM_FILES.items():
         df = pd.read_csv(os.path.join(Config.RAW_DATA_PATH, file_name))
         if nombre == "DEMANDA":
             print("  Procesando demanda...")
@@ -98,4 +102,6 @@ def load_data_files():
 
 #%% Ejecutar carga de datos
 if __name__ == "__main__":
-    load_data_files()
+    fecha_inicio_str = "2022-01-01"
+    fecha_fin_str = (dt.datetime.now() - dt.timedelta(days=1)).strftime("%Y-%m-%d")
+    load_data_files(fecha_inicio_str, fecha_fin_str)

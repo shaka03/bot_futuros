@@ -10,6 +10,13 @@ class Config:
             "TXR": "TX9999",
             "TXA": "TX999"
         }
+    
+    HIERARCY_VERSIONS_PRICE = {
+            "TXR": "TX999999",
+            "TXF": "TX99999",
+            "TX": "TX9999",
+            "TXA": "TX999"
+        }
 
 #%% Funciones de procesamiento de datos
 
@@ -180,7 +187,7 @@ def procesar_precios(
     df["FechaHora"] = pd.to_datetime(df["FechaHora"], format="%Y-%m-%d %H:%M:%S")
 
     # Extraer el número de versión de la columna "Version" para ordenar correctamente
-    df["Version"] = df["Version"].replace(Config.HIERARCY_VERSIONS)
+    df["Version"] = df["Version"].replace(Config.HIERARCY_VERSIONS_PRICE)
     df["v_num"] = df["Version"].str.extract("(\d+)").astype(int)
 
     # Ordenar por fecha y versión
@@ -278,7 +285,7 @@ def procesar_precios_ponderados(
     df["Fecha"] = pd.to_datetime(df["Fecha"], format="%Y-%m-%d")
 
     # Extraer el número de versión de la columna "Version" para ordenar correctamente
-    df["Version"] = df["Version"].replace(Config.HIERARCY_VERSIONS)
+    df["Version"] = df["Version"].replace(Config.HIERARCY_VERSIONS_PRICE)
     df["v_num"] = df["Version"].str.extract("(\d+)").astype(int)
 
     # Ordenar por fecha y versión

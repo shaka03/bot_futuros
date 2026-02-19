@@ -21,8 +21,8 @@ class DatasetSIMEM:
         "PRECIOS_PONDERADOS": "96D56E",
         "APORTES_HIDRICOS": "BA1C55",
         "NIVELES_EMBALSE": "BD26DC",
-        "DISPONIBILIDAD_REAL": "9E77E5",
-        "GENERACION_REAL": "E17D25"
+        "GENERACION_REAL": "E17D25",
+        "DISPONIBILIDAD_REAL": "9E77E5"
     }
 
 #%% Funciones
@@ -96,13 +96,11 @@ def load_data(
         DataFrame con los datos cargados desde SIMEM.
     """
     print("Cargando datos de XM...")
-    dict_files = {}
     for nombre, id_dataset in DatasetSIMEM.ID_DICT.items():
         print(f"Cargando {nombre}...")
         df = get_data(id_dataset, fecha_inicio_str, fecha_fin_str)
         df.to_csv(f"{data_path}/datos_crudos_{nombre}.csv", index=False)
-        dict_files[nombre] = f"datos_crudos_{nombre}.csv"
     
     print("✅ Datos de energía cargados correctamente")
 
-    return dict_files
+    return None
