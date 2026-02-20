@@ -101,6 +101,9 @@ def transformar_precio_cierre(df):
     # Cambiar nombre
     df_final.rename(columns={"Contrato": "Nemotecnico"}, inplace=True)
 
+    # Asegurar que Precio es numérico
+    df_final["Precio"] = pd.to_numeric(df_final["Precio"])
+
     return df_final
 
 

@@ -89,7 +89,7 @@ def load_data_files(
             print("  Procesando generación real...")
             df = procesar_generacion(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
-            
+
     print("Datos de XM procesados y guardados.")
 
     # Cargar datos de futuros
