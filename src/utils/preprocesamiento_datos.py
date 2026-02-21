@@ -547,3 +547,57 @@ def procesar_generacion(df: pd.DataFrame) -> pd.DataFrame:
         df_final[f"{col}_Pct"] = df_final[col] / df_final["Generacion_Total_kWh"] * 100 
 
     return df_final
+
+
+def procesar_demanda_comprador(
+        data_path: str,
+        fecha_inicio_str: str,
+        fecha_fin_str: str,
+        df_demanda: pd.DataFrame
+    ) -> pd.DataFrame:
+    """
+    Permite procesar el dataset de demanda del comprador no regulado.
+    
+    Args:
+        data_path (str): Ruta al archivo CSV con los datos de demanda del comprador no regulado.
+    Returns:
+        pd.DataFrame: DataFrame procesado con los datos de demanda del comprador no regulado ordenados y sin duplicados.
+    """
+
+    # Cargar datos de demanda del comprador no regulado
+    df_metricas = pd.read_csv(data_path, sep=";")
+
+    # Simular datos de demanda a partir de metricas
+    list_fechas = pd.date_range(start=fecha_inicio_str, end=fecha_fin_str, freq="D")
+    df_comprador = pd.DataFrame({"Fecha": list_fechas})
+    df_comprador["Month"] = df_comprador["Fecha"].dt.month
+    df_comprador["Year"] = df_comprador["Fecha"].dt.year
+
+    df_comprador = df_comprador.merge(df_metricas, on=["Year", "Month"], how="left")
+    df_comprador["Demanda_kWh_Dia"] = np.random.uniform(df_comprador["median"], df_comprador["std"])
+
+    df_comprador["Demanda_kWh_Dia"] = df_comprador["Demanda_kWh_Dia"] / 3.6
+
+    # Sacar proporciones de cada franja horaria con base en df_demanda
+    df_demanda["Proporcion_0-7"] = df_demanda["Demanda_kWh_0-7"] / df_demanda["Demanda_kWh_Dia"]
+    df_demanda["Proporcion_7-17"] = df_demanda["Demanda_kWh_7-17"] / df_demanda["Demanda_kWh_Dia"]
+    df_demanda["Proporcion_17-23"] = df_demanda["Demanda_kWh_17-23"] / df_demanda["Demanda_kWh_Dia"]
+
+    df_comprador = df_comprador.merge(
+        df_demanda[["Fecha", "Proporcion_0-7", "Proporcion_7-17", "Proporcion_17-23"]],
+        on="Fecha",
+        how="left"
+    )
+
+    df_comprador["Demanda_kWh_0-7"] = df_comprador["Demanda_kWh_Dia"] * df_comprador["Proporcion_0-7"]
+    df_comprador["Demanda_kWh_7-17"] = df_comprador["Demanda_kWh_Dia"] * df_comprador["Proporcion_7-17"]
+    df_comprador["Demanda_kWh_17-23"] = df_comprador["Demanda_kWh_Dia"] * df_comprador["Proporcion_17-23"]
+
+    # Dataframe final con columnas ordenadas
+    df_comprador = df_comprador[
+        [
+            "Fecha", "Demanda_kWh_0-7", "Demanda_kWh_7-17", "Demanda_kWh_17-23", "Demanda_kWh_Dia"
+        ]
+    ]
+
+    return df_comprador

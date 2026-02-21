@@ -17,7 +17,8 @@ from utils.preprocesamiento_datos import (
     procesar_aportes_hidricos,
     procesar_niveles_embalse,
     procesar_disponibilidad,
-    procesar_generacion
+    procesar_generacion,
+    procesar_demanda_comprador
 )
 
 #%% Configuración
@@ -58,9 +59,8 @@ def load_data_files(
             print("  Procesando demanda...")
             df_demanda, df_comprador = procesar_demanda(df.copy())
             df_demanda.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
-            df_comprador.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}_COMPRADOR.csv"), index=False)
-        
-        if nombre == "PRECIOS":
+            df_comprador.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_DEMANDA_COMPRADOR.csv"), index=False)
+
             print("  Procesando precios...")
             df = procesar_precios(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
@@ -103,5 +103,6 @@ def load_data_files(
 #%% Ejecutar carga de datos
 if __name__ == "__main__":
     fecha_inicio_str = "2022-01-01"
-    fecha_fin_str = (dt.datetime.now() - dt.timedelta(days=1)).strftime("%Y-%m-%d")
+    #fecha_fin_str = (dt.datetime.now() - dt.timedelta(days=1)).strftime("%Y-%m-%d")
+    fecha_fin_str = "2026-02-18"
     load_data_files(fecha_inicio_str, fecha_fin_str)
