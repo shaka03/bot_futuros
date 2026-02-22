@@ -215,6 +215,7 @@ def process_data(
                 df_comprador.to_csv(os.path.join(Config.GOLD_DATA_PATH, "datos_DEMANDA_COMPRADOR.csv"), index=False)
             elif key == "futuros":
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])
+                df.to_csv(os.path.join(Config.GOLD_DATA_PATH, "datos_FUTUROS.csv"), index=False)
 
                 # Guardar fechas transacciones
                 df_fechas = df[df["Fecha"] >= fecha_inicio_transacciones_str][["Fecha"]]
@@ -254,6 +255,10 @@ def process_data(
                     "Generacion_Hidraulica_kWh"
                 ]
                 df = df[cols_keep]
+                list_var_sistema.append(df)
+            elif key == "precios":
+                df = pd.read_csv(file_path, parse_dates=["Fecha"])
+                df.to_csv(os.path.join(Config.GOLD_DATA_PATH, "datos_PRECIOS.csv"), index=False)
                 list_var_sistema.append(df)
             else:
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])
@@ -296,6 +301,7 @@ def process_data(
                     df_contrato = pd.merge(df_contrato, df_sistema[["Fecha", "Precio_Ponderado_COP/kWh"]], on="Fecha", how="left")
                     df_contrato.set_index("Fecha", inplace=True)
                     df_contrato.sort_index(inplace=True)
+                    df_contrato["Base_Precio"] = df_contrato["Precio"] - df_contrato["Precio_Ponderado_COP/kWh"]
 
                     # Calcular retornos logarítmicos precio spot
                     df_contrato["Retorno_Precio"] = np.log(df_contrato["Precio_Ponderado_COP/kWh"] / df_contrato["Precio_Ponderado_COP/kWh"].shift(1))
@@ -304,6 +310,7 @@ def process_data(
                     df_contrato = pd.merge(df_contrato, df_sistema[["Fecha", "Precio_COP/kWh_0-7"]], on="Fecha", how="left")
                     df_contrato.set_index("Fecha", inplace=True)
                     df_contrato.sort_index(inplace=True)
+                    df_contrato["Base_Precio"] = df_contrato["Precio"] - df_contrato["Precio_COP/kWh_0-7"]
 
                     # Calcular retornos logarítmicos precio spot
                     df_contrato["Retorno_Precio"] = np.log(df_contrato["Precio_COP/kWh_0-7"] / df_contrato["Precio_COP/kWh_0-7"].shift(1))
@@ -313,6 +320,7 @@ def process_data(
                     df_contrato = pd.merge(df_contrato, df_sistema[["Fecha", "Precio_COP/kWh_7-17"]], on="Fecha", how="left")
                     df_contrato.set_index("Fecha", inplace=True)
                     df_contrato.sort_index(inplace=True)
+                    df_contrato["Base_Precio"] = df_contrato["Precio"] - df_contrato["Precio_COP/kWh_7-17"]
 
                     # Calcular retornos logarítmicos precio spot
                     df_contrato["Retorno_Precio"] = np.log(df_contrato["Precio_COP/kWh_7-17"] / df_contrato["Precio_COP/kWh_7-17"].shift(1))
@@ -322,6 +330,7 @@ def process_data(
                     df_contrato = pd.merge(df_contrato, df_sistema[["Fecha", "Precio_COP/kWh_17-23"]], on="Fecha", how="left")
                     df_contrato.set_index("Fecha", inplace=True)
                     df_contrato.sort_index(inplace=True, ascending=True)
+                    df_contrato["Base_Precio"] = df_contrato["Precio"] - df_contrato["Precio_COP/kWh_17-23"]
 
                     # Calcular retornos logarítmicos precio spot
                     df_contrato["Retorno_Precio"] = np.log(df_contrato["Precio_COP/kWh_17-23"] / df_contrato["Precio_COP/kWh_17-23"].shift(1))
@@ -330,22 +339,27 @@ def process_data(
                 rolling_cov = df_contrato["Retorno_Futuros"].rolling(window="30D", min_periods=30).cov(df_contrato["Retorno_Precio"])
                 rolling_var = df_contrato["Retorno_Futuros"].rolling(window="30D", min_periods=30).var()
                 df_contrato[f"Beta_Futuros_30D"] = rolling_cov / rolling_var
+                df_contrato = df_contrato.shift(1)  # Desplazar beta para que corresponda al día actual (no usar información futura)
                 df_contrato = df_contrato.reset_index()
 
                 list_df_futuros.append(df_contrato)
                 del df_contrato
         
         # Retornos precios spot
+        df_sistema.set_index("Fecha", inplace=True)
+        df_sistema.sort_index(inplace=True)
         df_sistema["Retorno_Precio_Dia"] = np.log(df_sistema["Precio_Ponderado_COP/kWh"] / df_sistema["Precio_Ponderado_COP/kWh"].shift(1))
         df_sistema["Retorno_Precio_0-7"] = np.log(df_sistema["Precio_COP/kWh_0-7"] / df_sistema["Precio_COP/kWh_0-7"].shift(1))
         df_sistema["Retorno_Precio_7-17"] = np.log(df_sistema["Precio_COP/kWh_7-17"] / df_sistema["Precio_COP/kWh_7-17"].shift(1))
         df_sistema["Retorno_Precio_17-23"] = np.log(df_sistema["Precio_COP/kWh_17-23"] / df_sistema["Precio_COP/kWh_17-23"].shift(1))
         
         # Guardar los datasets finales en GOLD
+        ## Guardar sistema con variables calculadas
+        df_sistema = df_sistema.shift(1).reset_index()  # Desplazar para evitar usar información futura en el mismo día
         df_sistema.to_csv(os.path.join(Config.GOLD_DATA_PATH, "dataset_SISTEMA.csv"), index=False)
-
+        ## Guardar futuros con variables calculadas
         df_futuros_final = pd.concat(list_df_futuros, ignore_index=True)
-        df_futuros_final = df_futuros_final[["Fecha", "Nemotecnico", "Tipo", "Precio", "Retorno_Futuros", "Beta_Futuros_30D"]]
+        df_futuros_final = df_futuros_final[["Fecha", "Nemotecnico", "Tipo", "Precio", "Retorno_Futuros", "Beta_Futuros_30D", "Base_Precio"]]
         df_futuros_final.to_csv(os.path.join(Config.GOLD_DATA_PATH, "precios_FUTUROS.csv"), index=False)
 
     # Cargar datos noticias

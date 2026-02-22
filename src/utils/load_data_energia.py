@@ -12,6 +12,7 @@ Identificadores de datasets SIMEM de energía:
 - Niveles de embalse: "BD26DC"
 - Disponibilidad real: "9E77E5"
 - Generación real: "E17D25"
+- Precios bilaterales: "5f246a"
 """
 
 class DatasetSIMEM:
@@ -20,7 +21,7 @@ class DatasetSIMEM:
         "PRECIOS": "EC6945",
         "PRECIOS_PONDERADOS": "96D56E",
         "PRECIOS_BILATERALES": "5f246a",
-        "NIVELES_EMBALSE": "BD26DC",
+        #"NIVELES_EMBALSE": "BD26DC",
         "GENERACION_REAL": "E17D25",
         "DISPONIBILIDAD_REAL": "9E77E5",
         "APORTES_HIDRICOS": "BA1C55"
