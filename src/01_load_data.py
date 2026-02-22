@@ -14,11 +14,11 @@ from utils.preprocesamiento_datos import (
     procesar_demanda,
     procesar_precios,
     procesar_precios_ponderados,
+    procesar_bilaterales,
     procesar_aportes_hidricos,
     procesar_niveles_embalse,
     procesar_disponibilidad,
-    procesar_generacion,
-    procesar_demanda_comprador
+    procesar_generacion
 )
 
 #%% Configuración
@@ -31,9 +31,10 @@ class Config:
         "PRECIOS": "datos_crudos_PRECIOS.csv",
         "PRECIOS_PONDERADOS": "datos_crudos_PRECIOS_PONDERADOS.csv",
         "APORTES_HIDRICOS": "datos_crudos_APORTES_HIDRICOS.csv",
-        "NIVELES_EMBALSE": "datos_crudos_NIVELES_EMBALSE.csv",
+        #"NIVELES_EMBALSE": "datos_crudos_NIVELES_EMBALSE.csv",
         "DISPONIBILIDAD_REAL": "datos_crudos_DISPONIBILIDAD_REAL.csv",
-        "GENERACION_REAL": "datos_crudos_GENERACION_REAL.csv"
+        "GENERACION_REAL": "datos_crudos_GENERACION_REAL.csv",
+        "PRECIOS_BILATERALES": "datos_crudos_PRECIOS_BILATERALES.csv"
     }
 
 #%% Funciones
@@ -60,7 +61,8 @@ def load_data_files(
             df_demanda, df_comprador = procesar_demanda(df.copy())
             df_demanda.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
             df_comprador.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_DEMANDA_COMPRADOR.csv"), index=False)
-
+        
+        if nombre == "PRECIOS":
             print("  Procesando precios...")
             df = procesar_precios(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
@@ -89,11 +91,17 @@ def load_data_files(
             print("  Procesando generación real...")
             df = procesar_generacion(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
+            
+        if nombre == "PRECIOS_BILATERALES":
+            print("  Procesando precios bilaterales...")
+            df = procesar_bilaterales(df.copy())
+            df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
 
     print("Datos de XM procesados y guardados.")
 
     # Cargar datos de futuros
     df_futuros = get_data_futuros()
+    df_futuros = df_futuros[df_futuros["Fecha"] <= fecha_fin_str]
     df_futuros.to_csv(os.path.join(Config.SILVER_DATA_PATH, "precios_FUTUROS.csv"), index=False)
 
     print("Proceso completado.")
@@ -104,5 +112,5 @@ def load_data_files(
 if __name__ == "__main__":
     fecha_inicio_str = "2022-01-01"
     #fecha_fin_str = (dt.datetime.now() - dt.timedelta(days=1)).strftime("%Y-%m-%d")
-    fecha_fin_str = "2026-02-18"
+    fecha_fin_str = "2026-01-31"
     load_data_files(fecha_inicio_str, fecha_fin_str)

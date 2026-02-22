@@ -19,18 +19,18 @@ class DatasetSIMEM:
         "DEMANDA": "d55202",
         "PRECIOS": "EC6945",
         "PRECIOS_PONDERADOS": "96D56E",
-        "APORTES_HIDRICOS": "BA1C55",
+        "PRECIOS_BILATERALES": "5f246a",
         "NIVELES_EMBALSE": "BD26DC",
         "GENERACION_REAL": "E17D25",
-        "DISPONIBILIDAD_REAL": "9E77E5"
+        "DISPONIBILIDAD_REAL": "9E77E5",
+        "APORTES_HIDRICOS": "BA1C55"
     }
 
 #%% Funciones
 def get_data(
         id_dataset: str,
         fecha_inicio_str: str = "2024-01-01",
-        fecha_fin_str: str = dt.datetime.now().strftime("%Y-%m-%d"),
-
+        fecha_fin_str: str = dt.datetime.now().strftime("%Y-%m-%d")
 ) -> pd.DataFrame:
     """
     Carga datos de SIMEM en un DataFrame de pandas.

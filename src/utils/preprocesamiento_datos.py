@@ -180,8 +180,8 @@ def procesar_precios(
         pd.DataFrame: DataFrame procesado con los datos de precios ordenados y sin duplicados.
     """
 
-    # Filtrar solo PB_Tie
-    df = df[df["CodigoVariable"] == "PB_Tie"]
+    # Filtrar solo PB_Nac
+    df = df[df["CodigoVariable"] == "PB_Nal"]
 
     # Convertir la columna "FechaHora" a formato datetime
     df["FechaHora"] = pd.to_datetime(df["FechaHora"], format="%Y-%m-%d %H:%M:%S")
@@ -549,55 +549,90 @@ def procesar_generacion(df: pd.DataFrame) -> pd.DataFrame:
     return df_final
 
 
-def procesar_demanda_comprador(
-        data_path: str,
-        fecha_inicio_str: str,
-        fecha_fin_str: str,
-        df_demanda: pd.DataFrame
+def procesar_bilaterales(
+        df: pd.DataFrame,
     ) -> pd.DataFrame:
     """
-    Permite procesar el dataset de demanda del comprador no regulado.
+    Permite procesar el dataset de precios bilaterales, ordenando por fecha y versión.
     
     Args:
-        data_path (str): Ruta al archivo CSV con los datos de demanda del comprador no regulado.
+        df (pd.DataFrame): DataFrame con los datos de precios bilaterales a procesar.
     Returns:
-        pd.DataFrame: DataFrame procesado con los datos de demanda del comprador no regulado ordenados y sin duplicados.
+        pd.DataFrame: DataFrame procesado con los datos de precios bilaterales ordenados y sin duplicados.
     """
+    # Convertir la columna "Fecha" a formato datetime
+    df["Fecha"] = pd.to_datetime(df["Fecha"], format="%Y-%m-%d")
 
-    # Cargar datos de demanda del comprador no regulado
-    df_metricas = pd.read_csv(data_path, sep=";")
+    # Extraer el número de versión de la columna "Version" para ordenar correctamente
+    df["Version"] = df["Version"].replace(Config.HIERARCY_VERSIONS_PRICE)
+    df["v_num"] = df["Version"].str.extract("(\d+)").astype(int)
 
-    # Simular datos de demanda a partir de metricas
-    list_fechas = pd.date_range(start=fecha_inicio_str, end=fecha_fin_str, freq="D")
-    df_comprador = pd.DataFrame({"Fecha": list_fechas})
-    df_comprador["Month"] = df_comprador["Fecha"].dt.month
-    df_comprador["Year"] = df_comprador["Fecha"].dt.year
-
-    df_comprador = df_comprador.merge(df_metricas, on=["Year", "Month"], how="left")
-    df_comprador["Demanda_kWh_Dia"] = np.random.uniform(df_comprador["median"], df_comprador["std"])
-
-    df_comprador["Demanda_kWh_Dia"] = df_comprador["Demanda_kWh_Dia"] / 3.6
-
-    # Sacar proporciones de cada franja horaria con base en df_demanda
-    df_demanda["Proporcion_0-7"] = df_demanda["Demanda_kWh_0-7"] / df_demanda["Demanda_kWh_Dia"]
-    df_demanda["Proporcion_7-17"] = df_demanda["Demanda_kWh_7-17"] / df_demanda["Demanda_kWh_Dia"]
-    df_demanda["Proporcion_17-23"] = df_demanda["Demanda_kWh_17-23"] / df_demanda["Demanda_kWh_Dia"]
-
-    df_comprador = df_comprador.merge(
-        df_demanda[["Fecha", "Proporcion_0-7", "Proporcion_7-17", "Proporcion_17-23"]],
-        on="Fecha",
-        how="left"
+    # Ordenar por fecha y versión
+    df_sorted = df.sort_values(
+        by=["Fecha", "Hora", "v_num"],
+        ascending=True
     )
 
-    df_comprador["Demanda_kWh_0-7"] = df_comprador["Demanda_kWh_Dia"] * df_comprador["Proporcion_0-7"]
-    df_comprador["Demanda_kWh_7-17"] = df_comprador["Demanda_kWh_Dia"] * df_comprador["Proporcion_7-17"]
-    df_comprador["Demanda_kWh_17-23"] = df_comprador["Demanda_kWh_Dia"] * df_comprador["Proporcion_17-23"]
+    # Eliminar duplicados, quedándonos con la última versión de cada combinación
+    # única de fecha
+    df_clean = df_sorted.drop_duplicates(
+        subset=["Fecha", "Hora"],
+        keep="last"
+    ).drop(columns=["v_num"])
 
-    # Dataframe final con columnas ordenadas
-    df_comprador = df_comprador[
+    # Calcular precio promedio diario, y también por franjas horarios:
+    # 0 a 7, 7 a 17, 17 a 24 y dia completo
+    df_clean["FranjaHoraria"] = pd.cut(
+        df_clean["Hora"],
+        bins=[-1, 7, 16, 23],
+        labels=["0-7", "7-17", "17-23"]
+    )
+    
+    df_final1 = df_clean.groupby(
+        [df_clean["Fecha"].dt.date, "FranjaHoraria"]
+    )["PPP"].mean().reset_index()
+
+    df_final2 = df_clean.groupby(
+        df_clean["Fecha"].dt.date
+    )["PPP"].mean().reset_index()
+    df_final2["FranjaHoraria"] = "Dia"
+
+    df_final = pd.concat([df_final1, df_final2], ignore_index=True)
+
+    # Renombrar columnas para mayor claridad
+    df_final.rename(columns={"Fecha": "Fecha", "PPP": "Precio_Bilateral_COP/kWh"}, inplace=True)
+
+    # Formato wide, con columnas para cada franja horaria
+    df_final = df_final.pivot(
+        index="Fecha", columns="FranjaHoraria",
+        values="Precio_Bilateral_COP/kWh"
+    ).reset_index()
+
+    # Completar fechas faltantes con precio promediado de los 30 días anteriores
+    df_final["Fecha"] = pd.to_datetime(df_final["Fecha"])
+    df_final.set_index("Fecha", inplace=True)
+    df_final = df_final.asfreq("D")  # Asegura que todas las fechas estén presentes
+    df_final = df_final.sort_index()  # Asegura que las fechas estén ordenadas
+    for col in ["0-7", "7-17", "17-23", "Dia"]:
+        df_final[col] = df_final[col].ffill()
+    df_final = df_final.reset_index()  # Volver a tener "Fecha" como columna normal
+    
+    # Renombrar columnas para mayor claridad
+    df_final.rename(
+        columns={
+            "0-7": "Precio_Bilateral_COP/kWh_0-7",
+            "7-17": "Precio_Bilateral_COP/kWh_7-17",
+            "17-23": "Precio_Bilateral_COP/kWh_17-23",
+            "Dia": "Precio_Bilateral_COP/kWh_Dia"
+        },
+        inplace=True
+    )
+
+    df_final = df_final[
         [
-            "Fecha", "Demanda_kWh_0-7", "Demanda_kWh_7-17", "Demanda_kWh_17-23", "Demanda_kWh_Dia"
+            "Fecha", "Precio_Bilateral_COP/kWh_0-7", "Precio_Bilateral_COP/kWh_7-17",
+            "Precio_Bilateral_COP/kWh_17-23", "Precio_Bilateral_COP/kWh_Dia"
         ]
     ]
 
-    return df_comprador
+    return df_final
