@@ -1,6 +1,69 @@
-Hola, ayúdame generando un prompt que permita construir un modelo de DRL para hacer estrategias de cobertura usando contratos futuros de electricidad para un comprador no regulado. Ten en cuenta lo siguiente:
+Actúa como un experto en Inteligencia Artificial, especializado en Deep Reinforcement Learning (DRL) y finanzas cuantitativas (mercados de energía). Tu tarea es desarrollar un proyecto completo en Python, de manera modular, para diseñar e implementar estrategias de cobertura financiera utilizando contratos futuros de electricidad en Colombia, orientado a un comprador no regulado.
 
-1. Datos: adjunto están los archivos con la información procesada. La información contenida en cada archivo es el siguiente:
-- fechas_transacciones.csv: contiene las fechas en los que se hacen transacciones de futuros de electricidad en Colombia. Estas fechas serán las que el agente debe tomar para hacer sus estrategias.
-- datos_DEMANDA_COMPRADOR.csv: contiene la información de la demanda histórica y esperada en kWh del comprador no regulado.
-- datos_FUTUROS.csv: contiene la información de los precios de cierre de los contratos futuros, junto con los retornos logarítmicos, base
+A continuación, te detallo las reglas de negocio, los datos, el entorno y los algoritmos requeridos para construir este modelo:
+
+1. Datos y Entorno
+El modelo debe leer e integrar los siguientes 6 archivos CSV:
+
+- fechas_transacciones.csv: Fechas en las que se hacen transacciones (días en los que el agente toma decisiones).
+- datos_DEMANDA_COMPRADOR.csv: Demanda histórica y esperada (en kWh) del comprador.
+- datos_FUTUROS.csv: Precios de cierre, retornos logarítmicos, betas (futuros vs spot) y la base. Nota: Estos datos ya están desplazados (t-1) para evitar el data leakage.
+- precios_FUTUROS.csv: Precios de cierre diarios por tipo de contrato y vencimientos (en COP/kWh).
+- datos_PRECIOS.csv: Precios spot diarios por franja horaria y total día (COP/kWh).
+- dataset_SISTEMA.csv: Variables de estado del ambiente (precios spot, demanda total del sistema, aportes hídricos, generación térmica/hidráulica, disponibilidad, ratio de cobertura y retornos). Nota: Ya desplazados (t-1) para evitar data leakage.
+
+2. Objetivo de la Estrategia
+El objetivo es cubrir la demanda esperada de electricidad usando contratos de futuros para evitar la volatilidad del precio spot.
+
+- Restricción principal: Evitar la sobre-cobertura (comprar más de lo necesario para cubrir la demanda esperada).
+- Horizonte máximo de cobertura: 6 meses hacia adelante.
+- Los contratos futuros cubren el mes completo a contratar.
+
+3. Dinámica de los Contratos de Futuros
+Existen cuatro tipos de contratos, y el sistema debe decidir si cubrirse usando el contrato base (ELM) o una combinación de las franjas horarias (MTB, DTB, NTB).
+
+- ELM (Total Día): Tamaño: 360,000 kWh. Máx por orden: 72,000 contratos. Curva: 72 meses.
+- MTB (00:00 a 07:00): Tamaño: 105,000 kWh. Máx por orden: 6,858 contratos. Curva: 24 meses.
+- DTB (07:00 a 17:00): Tamaño: 150,000 kWh. Máx por orden: 4,800 contratos. Curva: 24 meses.
+- NTB (17:00 a 24:00): Tamaño: 105,000 kWh. Máx por orden: 6,858 contratos. Curva: 24 meses.
+
+Nota: El precio de liquidación de todos es el promedio aritmético mensual de los precios de referencia del subyacente. Los contratos comprados pueden ser vendidos antes de la liquidación a los precios actuales de mercado.
+
+4. Costos de Transacción y Garantías
+- Comisión: 3% del valor total de la transacción.
+- Garantías (Margen): Varían según el vencimiento del contrato:
+  - 0 a 4 meses: 23.4% del total a cubrirse.
+  - 5 a 8 meses: 15.0% del total a cubrirse.
+  - 9 a 18 meses: 13.0% del total a cubrirse.
+  - 19 a 24 meses: 11.3% del total a cubrirse.
+  - 24 a 72 meses: 10.0% del total a cubrirse.
+
+5. Formulación de Multi-Agente (MARL)
+- Agentes: Habrá 4 agentes. Cada agente se especializará en operar un tipo de contrato (Agente ELM, Agente MTB, Agente DTB, Agente NTB).
+- Algoritmos: Se deben implementar y comparar dos algoritmos de Multi-Agent Reinforcement Learning: MADDPG y MAPPO.
+- Redes Neuronales: Las redes de los actores y críticos deben utilizar arquitectura de redes recurrentes, específicamente LSTM, para capturar las dependencias temporales de los precios y el mercado.
+- Observaciones: Normaliza todas las variables de estado usando técnicas estándar (ej. Min-Max o Z-score) antes de pasarlas a las redes neuronales.
+
+6. Función de Recompensa
+La recompensa en cada paso temporal debe ser el ahorro total esperado. La función de recompensa debe calcularse de la siguiente manera: Recompensa = Beneficios_cobertura + Beneficios_venta_contratos - Costos_transaccion - Costos_garantia - Penalizacion_sobrecobertura
+- Beneficios_cobertura: Ahorro generado al comprar a precio futuro en lugar del precio spot real.
+- Penalizacion_sobrecobertura: Un castigo matemático (costo adicional) si la suma de los kWh de los contratos comprados supera la demanda esperada para ese periodo.
+
+7. Requisitos Técnicos y Entregables
+El código debe estar escrito en Python, fuertemente tipado, con docstrings, y estructurado de forma modular (por ejemplo: env.py, models.py, maddpg.py, mappo.py, train.py, eval.py).
+
+Al finalizar el entrenamiento y la evaluación, el código debe exportar:
+  1. Un archivo de resultados con el historial de las estrategias aplicadas y los beneficios/sobrecostos logrados en COP.
+  2. Gráficos de la evolución de las recompensas durante el entrenamiento para MADDPG y MAPPO.
+  3. Gráficos comparativos de los costos totales mensuales: MADDPG vs MAPPO vs Escenario Base (No hacer nada, es decir, comprar el 100% de la demanda en la bolsa a precio spot).
+  4. Gráficos de las posiciones tomadas a lo largo del tiempo.
+
+Por favor, comienza generando la estructura del entorno personalizado (OpenAI Gym/PettingZoo) que cumpla con la lógica de los contratos, costos, y penalizaciones. Luego proporciona la arquitectura LSTM, las implementaciones de MADDPG y MAPPO, y el script de entrenamiento/evaluación. La estrucutura modular puede ser de la siguiente manera:
+  1. config.py
+  2. data_processor.py
+  3. environment.py
+  4. maddpg.py o mappo.py
+    4.1. networks.py
+    4.2. buffer.py (en caso de que sea necesario)
+  5. eval.py
+  6. main.py
