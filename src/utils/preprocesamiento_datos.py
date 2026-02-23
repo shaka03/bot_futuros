@@ -114,6 +114,7 @@ def procesar_demanda(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     mask1 = df_clean["CodigoSICAgente"] == "RTQC"
     mask2 = df_clean["TipoMercado"] == "No Regulado"
     df_comprador = df_clean[mask1 & mask2]
+    df_comprador["Valor"] = df_comprador["Valor"] * 0.3 # Vamos a simular el 30% de la demanda total de un comprador no regulado
 
     df_comprador1 = df_comprador.groupby(
         [df_comprador["FechaHora"].dt.date, "FranjaHoraria"]

@@ -246,8 +246,6 @@ def process_data(
         df_futuros_final = pd.concat(list_df_futuros, ignore_index=True)
         df_futuros_final = df_futuros_final[["Fecha", "Nemotecnico", "Tipo", "Precio", "Retorno_Futuros", "Beta_Futuros_30D", "Base_Precio"]]
         df_futuros_final.to_csv(os.path.join(Config.GOLD_DATA_PATH, "datos_FUTUROS.csv"), index=False)
-
-    # Cargar datos noticias
     
     print("Datasets finales guardado en GOLD.")
     return None

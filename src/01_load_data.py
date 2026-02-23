@@ -131,11 +131,11 @@ def load_data_files(
     print("Iniciando carga de datos...")
     
     # Cargar datos de XM
-    get_data_energia(
-        fecha_inicio_str=fecha_inicio_str,
-        fecha_fin_str=fecha_fin_str,
-        data_path=Config.RAW_DATA_PATH
-    )
+    #get_data_energia(
+    #    fecha_inicio_str=fecha_inicio_str,
+    #    fecha_fin_str=fecha_fin_str,
+    #    data_path=Config.RAW_DATA_PATH
+    #)
     
     # Procesar datos de XM
     print("Procesando datos de XM...")
@@ -190,7 +190,7 @@ def load_data_files(
     df_futuros.to_csv(os.path.join(Config.SILVER_DATA_PATH, "precios_FUTUROS.csv"), index=False)
 
     # Cargar noticias
-    print("Cargando noticias...")
+    #print("Cargando noticias...")
     #main_process(Config.RAW_DATA_PATH)
     #df_noticias = process_news(Config.RAW_DATA_PATH)
     #df_noticias = df_noticias[df_noticias["Fecha"] <= fecha_fin_str]
