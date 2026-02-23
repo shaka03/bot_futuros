@@ -183,7 +183,6 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Retorno_Precio_7-17 | Retornos logarítmicos del precio spot en la franja 7-17. | Numérica (Float) |
 | Retorno_Precio_17-23 | Retornos logarítmicos del precio spot en la franja 17-23. | Numérica (Float) |
 			
-
 ---
 
 ## 2. datos_DEMANDA_COMPRADOR.csv
@@ -199,8 +198,8 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 3. precios_FUTUROS.csv
-**Descripción:** Precios de cierre de los contratos de futuros de energía eléctrica negociados en el mercado.
+## 3. datos_FUTUROS.csv
+**Descripción:** Precios de cierre de los contratos de futuros de energía eléctrica negociados en el mercado, junto con los retornos logarítmicos y el beta móvil de 30 días.
 
 | Columna | Descripción | Tipo de Variable |
 | :--- | :--- | :--- |
@@ -222,3 +221,29 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Columna | Descripción | Tipo de Variable |
 | :--- | :--- | :--- |
 | Fecha | Fecha de la transacción (YYYY-MM-DD). | Temporal (Date) |
+
+---
+
+## 5. precios_FUTUROS.csv
+**Descripción:** Precios de cierre de los contratos de futuros de energía eléctrica negociados en el mercado.
+
+| Columna | Descripción | Tipo de Variable |
+| :--- | :--- | :--- |
+| Nemotecnico | Código identificador del contrato de futuro. | Categórica (String) |
+| Tipo | Tipo de contrato o mercado (ej. ELM). | Categórica (String) |
+| Mes | Mes de vencimiento del contrato. | Categórica (String) |
+| Año | Año de vencimiento del contrato. | Numérica (Integer) |
+| Fecha | Fecha de la cotización (YYYY-MM-DD). | Temporal (Date) |
+| FechaVencimientoContrato | Fecha de vencimiento del contrato (YYYY-MM-DD). | Temporal (Date) |
+| Precio | Precio de cierre del contrato de futuro (COP/kWh). | Numérica (Float) |
+
+## 6. datos_Precios.csv
+**Descripción:** Precios de spot por franja horario en el mercado eléctrico colombiano.
+
+| Columna | Descripción | Tipo de Variable |
+| :--- | :--- | :--- |
+| Fecha | Fecha del registro (YYYY-MM-DD). | Temporal (Date) |
+| Precio_COP/kWh_0-7 | Precio de bolsa promedio en la franja horaria 0-7. | Numérica (Float) |
+| Precio_COP/kWh_7-17 | Precio de bolsa promedio en la franja horaria 7-17. | Numérica (Float) |
+| Precio_COP/kWh_17-23 | Precio de bolsa promedio en la franja horaria 17-23. | Numérica (Float) |
+| Precio_COP/kWh_Dia | Precio de bolsa promedio aritmético del día. | Numérica (Float) |
