@@ -212,6 +212,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Precio | Precio de cierre del contrato de futuro (COP/kWh). | Numérica (Float) |
 | Retorno_Futuros | Retorno logarítmico de los precios de contratos futuros. | Numérica (Float) |
 | Beta_Futuros_30D | Beta móvil de 30 días de los futuros. | Numérica (Float) |
+| Base_Precio | Diferencia entre los precios futuros y el precio spot. | Numérica (Float) |
 
 ---
 

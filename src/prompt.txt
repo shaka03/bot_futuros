@@ -1,0 +1,6 @@
+Hola, ayúdame generando un prompt que permita construir un modelo de DRL para hacer estrategias de cobertura usando contratos futuros de electricidad para un comprador no regulado. Ten en cuenta lo siguiente:
+
+1. Datos: adjunto están los archivos con la información procesada. La información contenida en cada archivo es el siguiente:
+- fechas_transacciones.csv: contiene las fechas en los que se hacen transacciones de futuros de electricidad en Colombia. Estas fechas serán las que el agente debe tomar para hacer sus estrategias.
+- datos_DEMANDA_COMPRADOR.csv: contiene la información de la demanda histórica y esperada en kWh del comprador no regulado.
+- datos_FUTUROS.csv: contiene la información de los precios de cierre de los contratos futuros, junto con los retornos logarítmicos, base

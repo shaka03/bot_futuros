@@ -222,7 +222,7 @@ def process_data(
                 
                 # Calcular beta móvil de 30 días
                 rolling_cov = df_contrato["Retorno_Futuros"].rolling(window="30D", min_periods=30).cov(df_contrato["Retorno_Precio"])
-                rolling_var = df_contrato["Retorno_Futuros"].rolling(window="30D", min_periods=30).var()
+                rolling_var = df_contrato["Retorno_Precio"].rolling(window="30D", min_periods=30).var()
                 df_contrato[f"Beta_Futuros_30D"] = rolling_cov / rolling_var
                 df_contrato = df_contrato.shift(1)  # Desplazar beta para que corresponda al día actual (no usar información futura)
                 df_contrato = df_contrato.reset_index()
