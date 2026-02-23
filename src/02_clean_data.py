@@ -86,7 +86,7 @@ def process_data(
             
             elif key == "futuros":
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])
-                df.to_csv(os.path.join(Config.GOLD_DATA_PATH, "datos_FUTUROS.csv"), index=False)
+                df.to_csv(os.path.join(Config.GOLD_DATA_PATH, "precios_FUTUROS.csv"), index=False)
 
                 # Guardar fechas transacciones
                 df_fechas = df[df["Fecha"] >= fecha_inicio_transacciones_str][["Fecha"]]
@@ -245,7 +245,7 @@ def process_data(
         ## Guardar futuros con variables calculadas
         df_futuros_final = pd.concat(list_df_futuros, ignore_index=True)
         df_futuros_final = df_futuros_final[["Fecha", "Nemotecnico", "Tipo", "Precio", "Retorno_Futuros", "Beta_Futuros_30D", "Base_Precio"]]
-        df_futuros_final.to_csv(os.path.join(Config.GOLD_DATA_PATH, "precios_FUTUROS.csv"), index=False)
+        df_futuros_final.to_csv(os.path.join(Config.GOLD_DATA_PATH, "datos_FUTUROS.csv"), index=False)
 
     # Cargar datos noticias
     
