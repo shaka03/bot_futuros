@@ -59,7 +59,7 @@ def procesar_demanda(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     df_clean["Hora"] = df_clean["FechaHora"].dt.hour
     df_clean["FranjaHoraria"] = pd.cut(
         df_clean["Hora"],
-        bins=[-1, 7, 16, 23],
+        bins=[-1, 6, 16, 23],
         labels=["0-7", "7-17", "17-23"]
     )
     
@@ -209,7 +209,7 @@ def procesar_precios(
     df_clean["Hora"] = df_clean["FechaHora"].dt.hour
     df_clean["FranjaHoraria"] = pd.cut(
         df_clean["Hora"],
-        bins=[-1, 7, 16, 23],
+        bins=[-1, 6, 16, 23],
         labels=["0-7", "7-17", "17-23"]
     )
     
@@ -442,7 +442,7 @@ def procesar_disponibilidad(df: pd.DataFrame) -> pd.DataFrame:
     df_clean["Hora"] = df_clean["FechaHora"].dt.hour
     df_clean["FranjaHoraria"] = pd.cut(
         df_clean["Hora"],
-        bins=[-1, 7, 16, 23],
+        bins=[-1, 6, 16, 23],
         labels=["0-7", "7-17", "17-23"]
     )
     
@@ -585,7 +585,7 @@ def procesar_bilaterales(
     # 0 a 7, 7 a 17, 17 a 24 y dia completo
     df_clean["FranjaHoraria"] = pd.cut(
         df_clean["Hora"],
-        bins=[-1, 7, 16, 23],
+        bins=[-1, 6, 16, 23],
         labels=["0-7", "7-17", "17-23"]
     )
     
