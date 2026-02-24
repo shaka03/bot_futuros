@@ -134,6 +134,14 @@ def process_data(
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])
                 df.to_csv(os.path.join(Config.GOLD_DATA_PATH, "datos_PRECIOS.csv"), index=False)
                 list_var_sistema.append(df)
+
+                # Calcular los precios de liquidación por mes
+                df_precios_mes = df.copy()
+                df_precios_mes["FechaVencimiento"] = df_precios_mes["Fecha"].dt.to_period("M").dt.to_timestamp()
+                df_precios_mes["FechaVencimiento"] =  df_precios_mes["FechaVencimiento"] + pd.offsets.MonthEnd(0) # Ajustar al último día del mes
+                df_precios_mes = df_precios_mes.drop(columns=["Fecha"])
+                df_precios_mes = df_precios_mes.groupby("FechaVencimiento").mean().reset_index()
+                df_precios_mes.to_csv(os.path.join(Config.GOLD_DATA_PATH, "precios_LIQUIDACION.csv"), index=False)
             
             elif key == "noticias":
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])

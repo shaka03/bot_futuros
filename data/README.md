@@ -238,6 +238,8 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | FechaVencimientoContrato | Fecha de vencimiento del contrato (YYYY-MM-DD). | Temporal (Date) |
 | Precio | Precio de cierre del contrato de futuro (COP/kWh). | Numérica (Float) |
 
+---
+
 ## 6. datos_Precios.csv
 **Descripción:** Precios de spot por franja horario en el mercado eléctrico colombiano.
 
@@ -248,3 +250,16 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Precio_COP/kWh_7-17 | Precio de bolsa promedio en la franja horaria 7-17. | Numérica (Float) |
 | Precio_COP/kWh_17-23 | Precio de bolsa promedio en la franja horaria 17-23. | Numérica (Float) |
 | Precio_COP/kWh_Dia | Precio de bolsa promedio aritmético del día. | Numérica (Float) |
+
+---
+
+## 7. precios_liquidacion.csv
+**Descripción:** Son los precios en los cuales se liquidan los contratos futuros de electricidad.
+
+| Columna | Descripción | Tipo de Variable |
+| :--- | :--- | :--- |
+| FechaVencimiento | Fecha de vencimiento (YYYY-MM-DD). | Temporal (Date) |
+| Precio_COP/kWh_0-7 | Precio de liquidación en la franja horaria 0-7. | Numérica (Float) |
+| Precio_COP/kWh_7-17 | Precio de liquidación en la franja horaria 7-17. | Numérica (Float) |
+| Precio_COP/kWh_17-23 | Precio de liquidación en la franja horaria 17-23. | Numérica (Float) |
+| Precio_COP/kWh_Dia | Precio de liquidación total día. | Numérica (Float) |
