@@ -131,11 +131,11 @@ def load_data_files(
     print("Iniciando carga de datos...")
     
     # Cargar datos de XM
-    #get_data_energia(
-    #    fecha_inicio_str=fecha_inicio_str,
-    #    fecha_fin_str=fecha_fin_str,
-    #    data_path=Config.RAW_DATA_PATH
-    #)
+    get_data_energia(
+        fecha_inicio_str=fecha_inicio_str,
+        fecha_fin_str=fecha_fin_str,
+        data_path=Config.RAW_DATA_PATH
+    )
     
     # Procesar datos de XM
     print("Procesando datos de XM...")
@@ -166,12 +166,12 @@ def load_data_files(
             print("  Procesando niveles de embalse...")
             df = procesar_niveles_embalse(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
-
+    
         if nombre == "DISPONIBILIDAD_REAL":
             print("  Procesando disponibilidad real...")
             df = procesar_disponibilidad(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
-
+    
         if nombre == "GENERACION_REAL":
             print("  Procesando generación real...")
             df = procesar_generacion(df.copy())
@@ -181,13 +181,15 @@ def load_data_files(
             print("  Procesando precios bilaterales...")
             df = procesar_bilaterales(df.copy())
             df.to_csv(os.path.join(Config.SILVER_DATA_PATH, f"datos_{nombre}.csv"), index=False)
-
+    
     print("Datos de XM procesados y guardados.")
 
     # Cargar datos de futuros
-    df_futuros = get_data_futuros()
+    df_futuros, df_futuros_wide = get_data_futuros()
     df_futuros = df_futuros[df_futuros["Fecha"] <= fecha_fin_str]
+    df_futuros_wide = df_futuros_wide[df_futuros_wide["Fecha"] <= fecha_fin_str]
     df_futuros.to_csv(os.path.join(Config.SILVER_DATA_PATH, "precios_FUTUROS.csv"), index=False)
+    df_futuros_wide.to_csv(os.path.join(Config.SILVER_DATA_PATH, "precios_FUTUROS_WIDE.csv"), index=False)
 
     # Cargar noticias
     #print("Cargando noticias...")

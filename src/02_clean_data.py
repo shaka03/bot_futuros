@@ -7,6 +7,9 @@ import numpy as np
 
 from utils.simulation_demand import run_simulation
 
+import warnings
+warnings.filterwarnings("ignore")
+
 
 #%% Configuración
 class Config:
@@ -15,6 +18,7 @@ class Config:
 
     DICT_FILES = {
         "futuros": "precios_FUTUROS.csv",
+        "futuros_wide": "precios_FUTUROS_WIDE.csv",
         "precios": "datos_PRECIOS.csv",
         "precios_ponderados": "datos_PRECIOS_PONDERADOS.csv",
         #"precios_bilaterales": "datos_PRECIOS_BILATERALES.csv",
@@ -92,28 +96,6 @@ def process_data(
                 df_fechas = df[df["Fecha"] >= fecha_inicio_transacciones_str][["Fecha"]]
                 df_fechas = df_fechas.drop_duplicates().sort_values("Fecha").reset_index(drop=True)
                 df_fechas.to_csv(os.path.join(Config.GOLD_DATA_PATH, "fechas_transacciones.csv"), index=False)
-
-                # Completar fechas con el ultimo precio conocido (forward fill)
-                fechas_completas = pd.DataFrame({"FechaCompleta": pd.date_range(start=fecha_inicio_str, end=fecha_fin_str, freq="D")})
-                list_df = []
-                for contrato in df["Nemotecnico"].unique():
-                    # Filtrar por contrato
-                    mask_contrato = df["Nemotecnico"] == contrato
-                    df_contrato = df[mask_contrato].copy()
-
-                    # Completar fechas faltantes con forward fill
-                    df_contrato = pd.merge(fechas_completas, df_contrato, left_on="FechaCompleta", right_on="Fecha", how="left")
-                    df_contrato.sort_values("FechaCompleta", inplace=True)
-                    df_contrato.ffill(inplace=True)
-                    cols_bfill = ["Nemotecnico", "Tipo", "Mes", "Año", "FechaVencimientoContrato"]
-                    df_contrato[cols_bfill] = df_contrato[cols_bfill].bfill()
-                    df_contrato.drop(columns=["Fecha"], inplace=True)
-                    df_contrato.rename(columns={"FechaCompleta": "Fecha"}, inplace=True)
-                    list_df.append(df_contrato)
-                    del df_contrato
-                
-                # Concatenar todos los contratos
-                df_futuros = pd.concat(list_df, ignore_index=True)    
             
             elif key == "niveles_embalse":
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])
@@ -152,7 +134,27 @@ def process_data(
                 fechas_completas = pd.date_range(start=fecha_inicio_str, end=fecha_fin_str, freq="D")
                 df = df.set_index("Fecha").reindex(fechas_completas).sort_index().ffill().rename_axis("Fecha").reset_index()
                 list_var_sistema.append(df)
-                
+            
+            elif key == "futuros_wide":
+                df = pd.read_csv(file_path, parse_dates=["Fecha"])
+                lista_meses = [
+                    "Vencimiento_00Meses", "Vencimiento_01Meses", "Vencimiento_02Meses", "Vencimiento_03Meses",
+                    "Vencimiento_04Meses", "Vencimiento_05Meses", "Vencimiento_06Meses"
+                ]
+                contratos = [
+                    "ELM",
+                    "MTB",
+                    "DTB",
+                    "NTB"
+                ]
+                cols_to_analyze = []
+                for contrato in contratos:
+                    for mes in lista_meses:
+                        col_name = f"{contrato}_{mes}"
+                        cols_to_analyze.append(col_name)
+                df = df[["Fecha"] + cols_to_analyze]
+                list_var_sistema.append(df)
+
             else:
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])
                 list_var_sistema.append(df)
@@ -174,70 +176,6 @@ def process_data(
         # Media móvil de 7 días en aportes hídricos
         df_sistema["AportesHidricos_GWh_MA7"] = df_sistema["AportesHidricos_GWh"].rolling(window=7, min_periods=1).mean()
 
-        # Calcular los beta móviles a 30 días para cada contrato de futuros
-        print("Calculando beta móviles a 30 días para cada contrato de futuros...")
-        list_df_futuros = []
-        for contrato in df_futuros["Nemotecnico"].unique():
-            # Filtrar por contrato
-            mask_contrato = df_futuros["Nemotecnico"] == contrato
-            df_contrato = df_futuros[mask_contrato].copy()
-            tipo_contrato = df_contrato["Tipo"].iloc[0]
-
-            if len(df_contrato) < 30:
-                print(f"  No hay suficientes datos para calcular beta móvil de 30 días para el contrato {contrato}. Se requiere al menos 30 registros.")
-                list_df_futuros.append(df_contrato)
-                del df_contrato
-            else:
-                df_contrato["Retorno_Futuros"] = np.log(df_contrato["Precio"] / df_contrato["Precio"].shift(1))
-                if tipo_contrato == "ELM":
-                    # Unir con el sistema para tener los precios spot
-                    df_contrato = pd.merge(df_contrato, df_sistema[["Fecha", "Precio_Ponderado_COP/kWh"]], on="Fecha", how="left")
-                    df_contrato.set_index("Fecha", inplace=True)
-                    df_contrato.sort_index(inplace=True)
-                    df_contrato["Base_Precio"] = df_contrato["Precio"] - df_contrato["Precio_Ponderado_COP/kWh"]
-
-                    # Calcular retornos logarítmicos precio spot
-                    df_contrato["Retorno_Precio"] = np.log(df_contrato["Precio_Ponderado_COP/kWh"] / df_contrato["Precio_Ponderado_COP/kWh"].shift(1))
-                if tipo_contrato == "MTB":
-                    # Unir con el sistema para tener los precios spot
-                    df_contrato = pd.merge(df_contrato, df_sistema[["Fecha", "Precio_COP/kWh_0-7"]], on="Fecha", how="left")
-                    df_contrato.set_index("Fecha", inplace=True)
-                    df_contrato.sort_index(inplace=True)
-                    df_contrato["Base_Precio"] = df_contrato["Precio"] - df_contrato["Precio_COP/kWh_0-7"]
-
-                    # Calcular retornos logarítmicos precio spot
-                    df_contrato["Retorno_Precio"] = np.log(df_contrato["Precio_COP/kWh_0-7"] / df_contrato["Precio_COP/kWh_0-7"].shift(1))
-
-                if tipo_contrato == "DTB":
-                    # Unir con el sistema para tener los precios spot
-                    df_contrato = pd.merge(df_contrato, df_sistema[["Fecha", "Precio_COP/kWh_7-17"]], on="Fecha", how="left")
-                    df_contrato.set_index("Fecha", inplace=True)
-                    df_contrato.sort_index(inplace=True)
-                    df_contrato["Base_Precio"] = df_contrato["Precio"] - df_contrato["Precio_COP/kWh_7-17"]
-
-                    # Calcular retornos logarítmicos precio spot
-                    df_contrato["Retorno_Precio"] = np.log(df_contrato["Precio_COP/kWh_7-17"] / df_contrato["Precio_COP/kWh_7-17"].shift(1))
-                
-                if tipo_contrato == "NTB":
-                    # Unir con el sistema para tener los precios spot
-                    df_contrato = pd.merge(df_contrato, df_sistema[["Fecha", "Precio_COP/kWh_17-23"]], on="Fecha", how="left")
-                    df_contrato.set_index("Fecha", inplace=True)
-                    df_contrato.sort_index(inplace=True, ascending=True)
-                    df_contrato["Base_Precio"] = df_contrato["Precio"] - df_contrato["Precio_COP/kWh_17-23"]
-
-                    # Calcular retornos logarítmicos precio spot
-                    df_contrato["Retorno_Precio"] = np.log(df_contrato["Precio_COP/kWh_17-23"] / df_contrato["Precio_COP/kWh_17-23"].shift(1))
-                
-                # Calcular beta móvil de 30 días
-                rolling_cov = df_contrato["Retorno_Futuros"].rolling(window="30D", min_periods=30).cov(df_contrato["Retorno_Precio"])
-                rolling_var = df_contrato["Retorno_Precio"].rolling(window="30D", min_periods=30).var()
-                df_contrato[f"Beta_Futuros_30D"] = rolling_cov / rolling_var
-                df_contrato = df_contrato.shift(1)  # Desplazar beta para que corresponda al día actual (no usar información futura)
-                df_contrato = df_contrato.reset_index()
-
-                list_df_futuros.append(df_contrato)
-                del df_contrato
-        
         # Retornos precios spot
         df_sistema.set_index("Fecha", inplace=True)
         df_sistema.sort_index(inplace=True)
@@ -245,15 +183,68 @@ def process_data(
         df_sistema["Retorno_Precio_0-7"] = np.log(df_sistema["Precio_COP/kWh_0-7"] / df_sistema["Precio_COP/kWh_0-7"].shift(1))
         df_sistema["Retorno_Precio_7-17"] = np.log(df_sistema["Precio_COP/kWh_7-17"] / df_sistema["Precio_COP/kWh_7-17"].shift(1))
         df_sistema["Retorno_Precio_17-23"] = np.log(df_sistema["Precio_COP/kWh_17-23"] / df_sistema["Precio_COP/kWh_17-23"].shift(1))
+
+        # Calcular los beta móviles a 30 días para cada contrato de futuros
+        print("Calculando beta móviles a 30 días y bases para precios futuros...")
+        lista_meses = [
+            "Vencimiento_00Meses", "Vencimiento_01Meses", "Vencimiento_02Meses", "Vencimiento_03Meses",
+            "Vencimiento_04Meses", "Vencimiento_05Meses", "Vencimiento_06Meses"
+        ]
+        cols_to_analyze = {
+            "ELM": [],
+            "MTB": [],
+            "DTB": [],
+            "NTB": []
+        }
+
+        for tipo in cols_to_analyze.keys():
+            cols_to_analyze[tipo] = [f"{tipo}_{mes}" for mes in lista_meses]
+        
+        for tipo, cols in cols_to_analyze.items():
+            if tipo == "ELM":
+                for col in cols:
+                    df_sistema[col] = df_sistema[col].ffill().bfill()
+                    # Cálculo de base
+                    df_sistema[f"Base_{col}"] = df_sistema[col] - df_sistema["Precio_Ponderado_COP/kWh"]
+                    # Cálculo de beta móvil 30 días
+                    df_sistema[f"Retorno_{col}"] = np.log(df_sistema[col] / df_sistema[col].shift(1))
+                    rolling_cov = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).cov(df_sistema["Retorno_Precio_Dia"])
+                    rolling_var = df_sistema["Retorno_Precio_Dia"].rolling(window="30D", min_periods=30).var()
+                    df_sistema[f"Beta_MA30_{col}"]  = rolling_cov / rolling_var
+            if tipo == "MTB":
+                for col in cols:
+                    df_sistema[col] = df_sistema[col].ffill().bfill()
+                    # Cálculo de base
+                    df_sistema[f"Base_{col}"] = df_sistema[col] - df_sistema["Precio_COP/kWh_0-7"]
+                    # Cálculo de beta móvil 30 días
+                    df_sistema[f"Retorno_{col}"] = np.log(df_sistema[col] / df_sistema[col].shift(1))
+                    rolling_cov = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).cov(df_sistema["Retorno_Precio_0-7"])
+                    rolling_var = df_sistema["Retorno_Precio_0-7"].rolling(window="30D", min_periods=30).var()
+                    df_sistema[f"Beta_MA30_{col}"]  = rolling_cov / rolling_var
+            if tipo == "DTB":
+                for col in cols:
+                    df_sistema[col] = df_sistema[col].ffill().bfill()
+                    # Cálculo de base
+                    df_sistema[f"Base_{col}"] = df_sistema[col] - df_sistema["Precio_COP/kWh_7-17"]
+                    # Cálculo de beta móvil 30 días
+                    df_sistema[f"Retorno_{col}"] = np.log(df_sistema[col] / df_sistema[col].shift(1))
+                    rolling_cov = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).cov(df_sistema["Retorno_Precio_7-17"])
+                    rolling_var = df_sistema["Retorno_Precio_7-17"].rolling(window="30D", min_periods=30).var()
+                    df_sistema[f"Beta_MA30_{col}"]  = rolling_cov / rolling_var
+            if tipo == "NTB":
+                for col in cols:
+                    df_sistema[col] = df_sistema[col].ffill().bfill()
+                    # Cálculo de base
+                    df_sistema[f"Base_{col}"] = df_sistema[col] - df_sistema["Precio_COP/kWh_17-23"]
+                    # Cálculo de beta móvil 30 días
+                    df_sistema[f"Retorno_{col}"] = np.log(df_sistema[col] / df_sistema[col].shift(1))
+                    rolling_cov = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).cov(df_sistema["Retorno_Precio_17-23"])
+                    rolling_var = df_sistema["Retorno_Precio_17-23"].rolling(window="30D", min_periods=30).var()
+                    df_sistema[f"Beta_MA30_{col}"]  = rolling_cov / rolling_var
         
         # Guardar los datasets finales en GOLD
-        ## Guardar sistema con variables calculadas
         df_sistema = df_sistema.shift(1).reset_index()  # Desplazar para evitar usar información futura en el mismo día
         df_sistema.to_csv(os.path.join(Config.GOLD_DATA_PATH, "dataset_SISTEMA.csv"), index=False)
-        ## Guardar futuros con variables calculadas
-        df_futuros_final = pd.concat(list_df_futuros, ignore_index=True)
-        df_futuros_final = df_futuros_final[["Fecha", "Nemotecnico", "Tipo", "Precio", "Retorno_Futuros", "Beta_Futuros_30D", "Base_Precio"]]
-        df_futuros_final.to_csv(os.path.join(Config.GOLD_DATA_PATH, "datos_FUTUROS.csv"), index=False)
     
     print("Datasets finales guardado en GOLD.")
     return None

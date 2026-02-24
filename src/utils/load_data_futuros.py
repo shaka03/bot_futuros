@@ -1,6 +1,7 @@
 #%% Librerías
 import os
 import pandas as pd
+import numpy as np
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -414,6 +415,25 @@ def get_data_futuros():
 
     df_cierre_futuros = pd.concat(list_df, ignore_index=True)
 
+    # Precios futuros formato wide
+    ## 1. Calcular meses al vencimiento (Buckets)
+    df_cierre_futuros_wide = df_cierre_futuros.copy()
+    df_cierre_futuros_wide['Meses_al_Vencimiento'] = (
+        (df_cierre_futuros_wide['FechaVencimientoContrato'].dt.year - df_cierre_futuros_wide['Fecha'].dt.year) * 12 + 
+        (df_cierre_futuros_wide['FechaVencimientoContrato'].dt.month - df_cierre_futuros_wide['Fecha'].dt.month)
+    )
+    df_cierre_futuros_wide["Tipo_Contrato"] = np.where(
+        df_cierre_futuros_wide['Meses_al_Vencimiento'] <= 9,
+        df_cierre_futuros_wide["Tipo"] + "_Vencimiento_0" + df_cierre_futuros_wide["Meses_al_Vencimiento"].astype(str) + "Meses",
+        df_cierre_futuros_wide["Tipo"] + "_Vencimiento_" + df_cierre_futuros_wide["Meses_al_Vencimiento"].astype(str) + "Meses"
+    )
+    ## 2. Pivotear a formato wide
+    df_cierre_futuros_wide = df_cierre_futuros_wide.pivot_table(
+        index="Fecha", 
+        columns="Tipo_Contrato", 
+        values="Precio"
+    ).reset_index()
+
     # Convocatorias
     #conv, refe = cargar_datos_convocatorias()
 
@@ -427,4 +447,4 @@ def get_data_futuros():
     #ultimas, resumen = cargar_ultimas()
 
     print("✅ Datos de futuros cargados correctamente")
-    return df_cierre_futuros
+    return df_cierre_futuros, df_cierre_futuros_wide

@@ -145,6 +145,47 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 
 ---
 
+## 9. datos_NOTICIAS.csv
+**Descripción:** Registro de noticias del sector energético recolectadas de diversas fuentes, incluyendo el texto normalizado y una categorización numérica.
+
+| Columna | Descripción | Tipo de Variable |
+| :--- | :--- | :--- |
+| Titulo | Título original de la noticia tal como aparece en la fuente. | Categórica (String) |
+| Fuente | Nombre del medio de comunicación o portal que publica la noticia. | Categórica (String) |
+| Fecha | Fecha de publicación del registro. | Temporal (Date) |
+| Hora | Hora exacta de publicación de la noticia. | Temporal (Time) |
+| url | Enlace directo a la fuente original de la información. | Categórica (String) |
+| Titulo_norm | Título procesado (limpieza de caracteres, minúsculas) para análisis de texto. | Categórica (String) |
+| Tipo_noticia | Valor numérico que representa la clasificación o el sentimiento de la noticia. | Numérica (Float) |
+
+---
+
+# 10. datos_PRECIOS_BILATERALES.csv
+**Descripción:** Información sobre los precios de energía pactados en contratos bilaterales, segmentados por bloques de horas para el mercado colombiano.
+
+| Columna | Descripción | Tipo de Variable |
+| :--- | :--- | :--- |
+| Fecha | Fecha a la que corresponde el registro de precios. | Temporal (Date) |
+| Precio_Bilateral_COP/kWh_0-7 | Precio promedio en pesos por kilovatio hora para el bloque de 00:00 a 07:00. | Numérica (Float) |
+| Precio_Bilateral_COP/kWh_7-17 | Precio promedio en pesos por kilovatio hora para el bloque de 07:00 a 17:00. | Numérica (Float) |
+| Precio_Bilateral_COP/kWh_17-23 | Precio promedio en pesos por kilovatio hora para el bloque de 17:00 a 23:00. | Numérica (Float) |
+| Precio_Bilateral_COP/kWh_Dia | Precio promedio ponderado total para el día completo. | Numérica (Float) |
+
+---
+
+## 11. precios_FUTUROS_WIDE.csv
+**Descripción:** Matriz de precios de cierre para contratos de futuros de energía eléctrica (series DTB, ELM, MTB, NTB) con diferentes horizontes de vencimiento.
+
+| Columna | Descripción | Tipo de Variable |
+| :--- | :--- | :--- |
+| Fecha | Fecha de negociación o valoración de los contratos. | Temporal (Date) |
+| DTB_Vencimiento_XXMeses | Precios de futuros serie DTB con vencimiento a XX meses (0 a 23 meses). | Numérica (Float) |
+| ELM_Vencimiento_XXMeses | Precios de futuros serie ELM con vencimiento a XX meses (0 a 71 meses). | Numérica (Float) |
+| MTB_Vencimiento_XXMeses | Precios de futuros serie MTB con vencimiento a XX meses (0 a 23 meses). | Numérica (Float) |
+| NTB_Vencimiento_XXMeses | Precios de futuros serie NTB con vencimiento a XX meses (0 a 23 meses). | Numérica (Float) |
+
+---
+
 # Diccionario de Datos - 3_gold - agente de cobertura con futuros de electricidad
 
 Este documento proporciona una descripción detallada del dataset limpio, con las variables de precios y de estado, que están en la carpeta 📂 **3_gold**.
@@ -152,36 +193,22 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 ---
 
 ## 1. dataset_SISTEMA.csv
-**Descripción:** Contiene información agregada del sistema eléctrico colombiano, incluyendo precios de bolsa, demanda total, aportes hídricos, niveles de embalse, generación y disponibilidad por franjas horarias.
+**Descripción:** Archivo consolidado que integra variables del mercado spot, fundamentales del sistema (demanda/generación) e indicadores financieros.
 
 | Columna | Descripción | Tipo de Variable |
 | :--- | :--- | :--- |
-| Fecha | Fecha del registro (YYYY-MM-DD). | Temporal (Date) |
-| Precio_COP/kWh_0-7 | Precio de bolsa promedio en la franja horaria 0-7. | Numérica (Float) |
-| Precio_COP/kWh_7-17 | Precio de bolsa promedio en la franja horaria 7-17. | Numérica (Float) |
-| Precio_COP/kWh_17-23 | Precio de bolsa promedio en la franja horaria 17-23. | Numérica (Float) |
-| Precio_COP/kWh_Dia | Precio de bolsa promedio aritmético del día. | Numérica (Float) |
-| Precio_Ponderado_COP/kWh | Precio de bolsa ponderado por la demanda horaria. | Numérica (Float) |
-| Demanda_kWh_0-7 | Demanda total de energía del sistema en la franja 0-7. | Numérica (Float) |
-| Demanda_kWh_7-17 | Demanda total de energía del sistema en la franja 7-17. | Numérica (Float) |
-| Demanda_kWh_17-23 | Demanda total de energía del sistema en la franja 17-23. | Numérica (Float) |
-| Demanda_kWh_Dia | Demanda total de energía del sistema en el día. | Numérica (Float) |
-| AportesHidricos_GWh | Energía que ingresa a los embalses en forma de agua. | Numérica (Float) |
-| Generacion_Termica_kWh | Energía total generada por fuentes térmicas. | Numérica (Float) |
-| Generacion_Hidraulica_kWh | Energía total generada por fuentes hidráulicas. | Numérica (Float) |
-| Disponibilidad_kWh_0-7 | Capacidad de generación disponible en la franja 0-7. | Numérica (Float) |
-| Disponibilidad_kWh_7-17 | Capacidad de generación disponible en la franja 7-17. | Numérica (Float) |
-| Disponibilidad_kWh_17-23 | Capacidad de generación disponible en la franja 17-23. | Numérica (Float) |
-| Disponibilidad_kWh_Dia | Capacidad de generación disponible total del día. | Numérica (Float) |
-| Ratio_Cobertura_Dia | Relación entre la disponibilidad y la demanda total diaria. | Numérica (Float) |
-| Ratio_Cobertura_0-7 | Relación entre disponibilidad y demanda en la franja 0-7. | Numérica (Float) |
-| Ratio_Cobertura_7-17 | Relación entre disponibilidad y demanda en la franja 7-17. | Numérica (Float) |
-| Ratio_Cobertura_17-23 | Relación entre disponibilidad y demanda en la franja 17-23. | Numérica (Float) |
-| AportesHidricos_GWh_MA7 | Media móvil de 7 días de los aportes hídricos. | Numérica (Float) |
-| Retorno_Precio_Dia | Retornos logarítmicos del precio spot total día. | Numérica (Float) |
-| Retorno_Precio_0-7 | Retornos logarítmicos del precio spot en la franja 0-7. | Numérica (Float) |
-| Retorno_Precio_7-17 | Retornos logarítmicos del precio spot en la franja 7-17. | Numérica (Float) |
-| Retorno_Precio_17-23 | Retornos logarítmicos del precio spot en la franja 17-23. | Numérica (Float) |
+| Fecha | Fecha de operación del sistema. | Temporal (Date) |
+| [SERIE]_Vencimiento_00-06Meses | Precios de futuros de corto plazo (ELM, MTB, DTB, NTB). | Numérica (Float) |
+| Precio_COP/kWh_[Bloque] | Precios spot de energía en bolsa por bloques horarios. | Numérica (Float) |
+| Demanda_kWh_[Bloque] | Demanda de energía eléctrica por bloques y total diario. | Numérica (Float) |
+| AportesHidricos_GWh | Energía que ingresa a los embalses por caudales. | Numérica (Float) |
+| Generacion_Termica_kWh | Energía producida por plantas térmicas. | Numérica (Float) |
+| Generacion_Hidraulica_kWh | Energía producida por centrales hidroeléctricas. | Numérica (Float) |
+| Disponibilidad_kWh_[Bloque] | Oferta total disponible en el sistema. | Numérica (Float) |
+| Ratio_Cobertura_[Bloque] | Relación Disponibilidad / Demanda. | Numérica (Float) |
+| Retorno_[Variable] | Variación porcentual (logarítmica) de precios y futuros. | Numérica (Float) |
+| Base_[SERIE]_Vencimiento_XX | Basis: Diferencia entre el precio spot y el futuro. | Numérica (Float) |
+| Beta_MA30_[SERIE]_Vencimiento | Sensibilidad (Beta) del contrato con media móvil de 30 días. | Numérica (Float) |
 			
 ---
 
@@ -198,25 +225,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 3. datos_FUTUROS.csv
-**Descripción:** Precios de cierre de los contratos de futuros de energía eléctrica negociados en el mercado, junto con los retornos logarítmicos y el beta móvil de 30 días.
-
-| Columna | Descripción | Tipo de Variable |
-| :--- | :--- | :--- |
-| Nemotecnico | Código identificador del contrato de futuro. | Categórica (String) |
-| Tipo | Tipo de contrato o mercado (ej. ELM). | Categórica (String) |
-| Mes | Mes de vencimiento del contrato. | Categórica (String) |
-| Año | Año de vencimiento del contrato. | Numérica (Integer) |
-| Fecha | Fecha de la cotización (YYYY-MM-DD). | Temporal (Date) |
-| FechaVencimientoContrato | Fecha de vencimiento del contrato (YYYY-MM-DD). | Temporal (Date) |
-| Precio | Precio de cierre del contrato de futuro (COP/kWh). | Numérica (Float) |
-| Retorno_Futuros | Retorno logarítmico de los precios de contratos futuros. | Numérica (Float) |
-| Beta_Futuros_30D | Beta móvil de 30 días de los futuros. | Numérica (Float) |
-| Base_Precio | Diferencia entre los precios futuros y el precio spot. | Numérica (Float) |
-
----
-
-## 4. fechas_transacciones.csv
+## 3. fechas_transacciones.csv
 **Descripción:** Corresponde a las fechas en las que hacen las transacciones en el mercado de futuros de electricidad.
 
 | Columna | Descripción | Tipo de Variable |
@@ -225,7 +234,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 5. precios_FUTUROS.csv
+## 4. precios_FUTUROS.csv
 **Descripción:** Precios de cierre de los contratos de futuros de energía eléctrica negociados en el mercado.
 
 | Columna | Descripción | Tipo de Variable |
@@ -240,7 +249,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 6. datos_Precios.csv
+## 5. datos_Precios.csv
 **Descripción:** Precios de spot por franja horario en el mercado eléctrico colombiano.
 
 | Columna | Descripción | Tipo de Variable |
@@ -253,7 +262,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 7. precios_liquidacion.csv
+## 6. precios_liquidacion.csv
 **Descripción:** Son los precios en los cuales se liquidan los contratos futuros de electricidad.
 
 | Columna | Descripción | Tipo de Variable |
