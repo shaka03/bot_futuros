@@ -417,18 +417,20 @@ def get_data_futuros():
 
     # Precios futuros formato wide
     ## 1. Calcular meses al vencimiento (Buckets)
-    df_cierre_futuros_wide = df_cierre_futuros.copy()
-    df_cierre_futuros_wide['Meses_al_Vencimiento'] = (
-        (df_cierre_futuros_wide['FechaVencimientoContrato'].dt.year - df_cierre_futuros_wide['Fecha'].dt.year) * 12 + 
-        (df_cierre_futuros_wide['FechaVencimientoContrato'].dt.month - df_cierre_futuros_wide['Fecha'].dt.month)
+    df_cierre_futuros['Meses_al_Vencimiento'] = (
+        (df_cierre_futuros['FechaVencimientoContrato'].dt.year - df_cierre_futuros['Fecha'].dt.year) * 12 + 
+        (df_cierre_futuros['FechaVencimientoContrato'].dt.month - df_cierre_futuros['Fecha'].dt.month)
     )
-    df_cierre_futuros_wide["Tipo_Contrato"] = np.where(
-        df_cierre_futuros_wide['Meses_al_Vencimiento'] <= 9,
-        df_cierre_futuros_wide["Tipo"] + "_Vencimiento_0" + df_cierre_futuros_wide["Meses_al_Vencimiento"].astype(str) + "Meses",
-        df_cierre_futuros_wide["Tipo"] + "_Vencimiento_" + df_cierre_futuros_wide["Meses_al_Vencimiento"].astype(str) + "Meses"
+    
+    df_cierre_futuros["Tipo_Contrato"] = np.where(
+        df_cierre_futuros['Meses_al_Vencimiento'] <= 9,
+        df_cierre_futuros["Tipo"] + "_Vencimiento_0" + df_cierre_futuros["Meses_al_Vencimiento"].astype(str) + "Meses",
+        df_cierre_futuros["Tipo"] + "_Vencimiento_" + df_cierre_futuros["Meses_al_Vencimiento"].astype(str) + "Meses"
     )
+    df_cierre_futuros = df_cierre_futuros.drop(columns=["Meses_al_Vencimiento"])
+
     ## 2. Pivotear a formato wide
-    df_cierre_futuros_wide = df_cierre_futuros_wide.pivot_table(
+    df_cierre_futuros_wide = df_cierre_futuros.pivot_table(
         index="Fecha", 
         columns="Tipo_Contrato", 
         values="Precio"

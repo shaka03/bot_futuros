@@ -142,6 +142,7 @@ Este documento proporciona una descripción detallada de los datasets relacionad
 | Fecha | Fecha de la cotización (YYYY-MM-DD). | Temporal (Date) |
 | FechaVencimientoContrato | Fecha de de vencimiento del comtrato (YYYY-MM-DD). | Temporal (Date) |
 | Precio | Precio de cierre del contrato de futuro (COP/kWh). | Numérica (Float) |
+| Tipo_Contrato | Indica a los cuántos meses se vence el contrato en ese día específico. | Categórica (String) |
 
 ---
 
@@ -246,6 +247,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Fecha | Fecha de la cotización (YYYY-MM-DD). | Temporal (Date) |
 | FechaVencimientoContrato | Fecha de vencimiento del contrato (YYYY-MM-DD). | Temporal (Date) |
 | Precio | Precio de cierre del contrato de futuro (COP/kWh). | Numérica (Float) |
+| Tipo_Contrato | Indica a los cuántos meses se vence el contrato en ese día específico. | Categórica (String) |
 
 ---
 
