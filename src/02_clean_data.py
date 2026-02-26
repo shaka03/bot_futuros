@@ -133,6 +133,8 @@ def process_data(
                 # Completar fechas faltantes
                 fechas_completas = pd.date_range(start=fecha_inicio_str, end=fecha_fin_str, freq="D")
                 df = df.set_index("Fecha").reindex(fechas_completas).sort_index().ffill().rename_axis("Fecha").reset_index()
+                # Aplicar media movil de los últimos 30 días
+                df["Tipo_noticia"] = df["Tipo_noticia"].rolling(window=30, min_periods=1).mean()  # Suavizar con media móvil de 30 días
                 list_var_sistema.append(df)
             
             elif key == "futuros_wide":
