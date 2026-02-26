@@ -210,6 +210,8 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Retorno_[Variable] | Variación porcentual (logarítmica) de precios y futuros. | Numérica (Float) |
 | Base_[SERIE]_Vencimiento_XX | Basis: Diferencia entre el precio spot y el futuro. | Numérica (Float) |
 | Beta_MA30_[SERIE]_Vencimiento | Sensibilidad (Beta) del contrato con media móvil de 30 días. | Numérica (Float) |
+| Precio_Bilateral_COP/kWh_[Bloque] | Precio promedio ponderado total bilateral del mes. | Numérica (Float) |
+| Tipo_noticia | Valor numérico que representa la clasificación o el sentimiento de la noticia. | Numérica (Float) |
 			
 ---
 

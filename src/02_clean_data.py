@@ -21,14 +21,14 @@ class Config:
         "futuros_wide": "precios_FUTUROS_WIDE.csv",
         "precios": "datos_PRECIOS.csv",
         "precios_ponderados": "datos_PRECIOS_PONDERADOS.csv",
-        #"precios_bilaterales": "datos_PRECIOS_BILATERALES.csv",
+        "precios_bilaterales": "datos_PRECIOS_BILATERALES.csv",
         "demanda": "datos_DEMANDA.csv",
         "demanda_comprador": "datos_DEMANDA_COMPRADOR.csv",
         "aportes_hidricos": "datos_APORTES_HIDRICOS.csv",
         #"niveles_embalse": "datos_NIVELES_EMBALSE.csv",
         "generacion": "datos_GENERACION_REAL.csv",
         "disponibilidad": "datos_DISPONIBILIDAD_REAL.csv",
-        #"noticias": "datos_NOTICIAS.csv"
+        "noticias": "datos_NOTICIAS.csv"
     }
 
 #%% Funciones
