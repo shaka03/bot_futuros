@@ -107,7 +107,8 @@ def process_data(
                 cols_keep = [
                     "Fecha",
                     "Generacion_Termica_kWh",
-                    "Generacion_Hidraulica_kWh"
+                    "Generacion_Hidraulica_kWh",
+                    "Generacion_Solar_kWh"
                 ]
                 df = df[cols_keep]
                 list_var_sistema.append(df)
@@ -246,7 +247,23 @@ def process_data(
         
         # Guardar los datasets finales en GOLD
         df_sistema = df_sistema.shift(1).reset_index()  # Desplazar para evitar usar información futura en el mismo día
-        df_sistema.to_csv(os.path.join(Config.GOLD_DATA_PATH, "dataset_SISTEMA.csv"), index=False)
+        
+        cols_system = [
+            "Fecha", "Precio_Ponderado_COP/kWh", "AportesHidricos_GWh",
+            "Generacion_Termica_kWh", "Generacion_Hidraulica_kWh",
+            "Generacion_Solar_kWh", "Tipo_noticia", "AportesHidricos_GWh_MA7"
+        ]
+
+        dict_sistema_contrato = {
+            "ELM": cols_system + [col for col in df_sistema.columns if "ELM" in col or "_Dia" in col],
+            "MTB": cols_system + [col for col in df_sistema.columns if "MTB" in col or "_0-7" in col],
+            "DTB": cols_system + [col for col in df_sistema.columns if "DTB" in col or "_7-17" in col],
+            "NTB": cols_system+ [col for col in df_sistema.columns if "NTB" in col or "_17-23" in col]
+        }
+
+        for contrato, cols in dict_sistema_contrato.items():
+            df_contrato = df_sistema[cols].copy()
+            df_contrato.to_csv(os.path.join(Config.GOLD_DATA_PATH, f"dataset_SISTEMA_{contrato}.csv"), index=False)
     
     print("Datasets finales guardado en GOLD.")
     return None

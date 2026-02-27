@@ -193,8 +193,8 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 1. dataset_SISTEMA.csv
-**Descripción:** Archivo consolidado que integra variables del mercado spot, fundamentales del sistema (demanda/generación) e indicadores financieros.
+## 1. dataset_SISTEMA_[CONTRATO].csv
+**Descripción:** Archivos consolidados que integran variables del mercado spot, fundamentales del sistema (demanda/generación) e indicadores financieros, para el tipo de contrato determinado.
 
 | Columna | Descripción | Tipo de Variable |
 | :--- | :--- | :--- |
