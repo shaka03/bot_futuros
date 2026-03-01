@@ -1,4 +1,0 @@
-1. Unir con los datos de noticias*
-2. Hacer agente. Propuesta: MADDPG y MAPPO
-3. Analizar estrategias y modificar
-4. Análisis de resultados y conclusiones

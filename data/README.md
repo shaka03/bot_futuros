@@ -253,7 +253,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 5. datos_Precios.csv
+## 5. datos_PRECIOS.csv
 **Descripción:** Precios de spot por franja horario en el mercado eléctrico colombiano.
 
 | Columna | Descripción | Tipo de Variable |
@@ -266,7 +266,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 6. precios_liquidacion.csv
+## 6. precios_LIQUIDACION.csv
 **Descripción:** Son los precios en los cuales se liquidan los contratos futuros de electricidad.
 
 | Columna | Descripción | Tipo de Variable |
