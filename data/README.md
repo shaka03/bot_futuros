@@ -205,6 +205,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | AportesHidricos_GWh | Energía que ingresa a los embalses por caudales. | Numérica (Float) |
 | Generacion_Termica_kWh | Energía producida por plantas térmicas. | Numérica (Float) |
 | Generacion_Hidraulica_kWh | Energía producida por centrales hidroeléctricas. | Numérica (Float) |
+| Generacion_Solar_kWh | Energía producida por las plantas solares. | Numérica (Float) |
 | Disponibilidad_kWh_[Bloque] | Oferta total disponible en el sistema. | Numérica (Float) |
 | Ratio_Cobertura_[Bloque] | Relación Disponibilidad / Demanda. | Numérica (Float) |
 | Retorno_[Variable] | Variación porcentual (logarítmica) de precios y futuros. | Numérica (Float) |
