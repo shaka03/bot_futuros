@@ -209,27 +209,15 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Disponibilidad_kWh_[Bloque] | Oferta total disponible en el sistema. | Numérica (Float) |
 | Ratio_Cobertura_[Bloque] | Relación Disponibilidad / Demanda. | Numérica (Float) |
 | Retorno_[Variable] | Variación porcentual (logarítmica) de precios y futuros. | Numérica (Float) |
-| Base_[SERIE]_Vencimiento_XX | Basis: Diferencia entre el precio spot y el futuro. | Numérica (Float) |
-| Beta_MA30_[SERIE]_Vencimiento | Sensibilidad (Beta) del contrato con media móvil de 30 días. | Numérica (Float) |
+| Base_[SERIE]_Vencimiento_00-06Meses | Basis: Diferencia entre el precio spot y el futuro. | Numérica (Float) |
+| Beta_MA30_[SERIE]_Vencimiento00-06Meses | Sensibilidad (Beta) del contrato con media móvil de 30 días. | Numérica (Float) |
 | Precio_Bilateral_COP/kWh_[Bloque] | Precio promedio ponderado total bilateral del mes. | Numérica (Float) |
 | Tipo_noticia | Media móvil de 30 días del valor numérico que representa el sentimiento de la noticia. | Numérica (Float) |
-			
----
-
-## 2. datos_DEMANDA_COMPRADOR.csv
-**Descripción:** Registra la demanda de energía eléctrica de un comprador específico del mercado, discriminada por franjas horarias.
-
-| Columna | Descripción | Tipo de Variable |
-| :--- | :--- | :--- |
-| Fecha | Fecha del registro (YYYY-MM-DD). | Temporal (Date) |
-| Demanda_kWh_0-7 | Demanda de energía del comprador en la franja 0-7. | Numérica (Float) |
-| Demanda_kWh_7-17 | Demanda de energía del comprador en la franja 7-17. | Numérica (Float) |
-| Demanda_kWh_17-23 | Demanda de energía del comprador en la franja 17-23. | Numérica (Float) |
-| Demanda_kWh_Dia | Demanda total de energía del comprador en el día. | Numérica (Float) |
+| Demanda_[Bloque]_00-06Meses_Adelante | Demanda de energía eléctrica a los xx meses adelante a partir de hoy por bloques y total diario. | Numérica (Float) |
 
 ---
 
-## 3. fechas_transacciones.csv
+## 2. fechas_transacciones.csv
 **Descripción:** Corresponde a las fechas en las que hacen las transacciones en el mercado de futuros de electricidad.
 
 | Columna | Descripción | Tipo de Variable |
@@ -238,7 +226,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 4. precios_FUTUROS.csv
+## 3. precios_FUTUROS.csv
 **Descripción:** Precios de cierre de los contratos de futuros de energía eléctrica negociados en el mercado.
 
 | Columna | Descripción | Tipo de Variable |
@@ -254,7 +242,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 5. datos_PRECIOS.csv
+## 4. datos_PRECIOS.csv
 **Descripción:** Precios de spot por franja horario en el mercado eléctrico colombiano.
 
 | Columna | Descripción | Tipo de Variable |
@@ -267,7 +255,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 6. precios_LIQUIDACION.csv
+## 5. precios_LIQUIDACION.csv
 **Descripción:** Son los precios en los cuales se liquidan los contratos futuros de electricidad.
 
 | Columna | Descripción | Tipo de Variable |
