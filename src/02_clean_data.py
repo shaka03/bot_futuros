@@ -86,6 +86,8 @@ def process_data(
             if key == "demanda_comprador":
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])
                 df_comprador = run_simulation(df.copy())
+                dict_rename_cols = {c: f"{c}_Comprador" for c in df_comprador.columns if c not in ["Fecha", "CompradorID"]}
+                df_comprador = df_comprador.rename(columns=dict_rename_cols)
                 list_var_sistema.append(df_comprador)
 
                 # Obtener la demanda de hasta 6 meses a partir de la fecha t
@@ -93,21 +95,21 @@ def process_data(
                 ##  Agrupar por mes y sumar la demanda
                 df_comprador_meses["Mes_Periodo"] = df_comprador_meses["Fecha"].dt.to_period("M")
                 ## Calcular la demanda total por mes (sumando 'Demanda_kWh_Dia')
-                demanda_mensual = df_comprador_meses.groupby("Mes_Periodo")[["Demanda_kWh_0-7", "Demanda_kWh_7-17", "Demanda_kWh_17-23", "Demanda_kWh_Dia"]].sum().reset_index()
+                demanda_mensual = df_comprador_meses.groupby("Mes_Periodo")[["Demanda_kWh_0-7_Comprador", "Demanda_kWh_7-17_Comprador", "Demanda_kWh_17-23_Comprador", "Demanda_kWh_Dia_Comprador"]].sum().reset_index()
                 ## Crear las columnas de demanda acumulada para 1 a 6 meses adelante
                 ## Usamos shift(-i) para traer el valor del i-ésimo mes futuro a la fila actual
                 for i in range(1, 7):
-                    demanda_mensual[f"Demanda_Dia_0{i}Meses_Adelante"] = demanda_mensual["Demanda_kWh_Dia"].shift(-i)
-                    demanda_mensual[f"Demanda_0-7_0{i}Meses_Adelante"] = demanda_mensual["Demanda_kWh_0-7"].shift(-i)
-                    demanda_mensual[f"Demanda_7-17_0{i}Meses_Adelante"] = demanda_mensual["Demanda_kWh_7-17"].shift(-i)
-                    demanda_mensual[f"Demanda_17-23_0{i}Meses_Adelante"] = demanda_mensual["Demanda_kWh_17-23"].shift(-i)
+                    demanda_mensual[f"Demanda_Comprador_Dia_0{i}Meses_Adelante"] = demanda_mensual["Demanda_kWh_Dia_Comprador"].shift(-i)
+                    demanda_mensual[f"Demanda_Comprador_0-7_0{i}Meses_Adelante"] = demanda_mensual["Demanda_kWh_0-7_Comprador"].shift(-i)
+                    demanda_mensual[f"Demanda_Comprador_7-17_0{i}Meses_Adelante"] = demanda_mensual["Demanda_kWh_7-17_Comprador"].shift(-i)
+                    demanda_mensual[f"Demanda_Comprador_17-23_0{i}Meses_Adelante"] = demanda_mensual["Demanda_kWh_17-23_Comprador"].shift(-i)
 
                 # 5. Unir la información mensual al dataframe diario original
                 # Quitamos la demanda actual del dataframe de meses para no duplicarla en el resultado
-                demanda_mensual_adelante = demanda_mensual.drop(columns=["Demanda_kWh_Dia", "Demanda_kWh_0-7", "Demanda_kWh_7-17", "Demanda_kWh_17-23"])
+                demanda_mensual_adelante = demanda_mensual.drop(columns=["Demanda_kWh_Dia_Comprador", "Demanda_kWh_0-7_Comprador", "Demanda_kWh_7-17_Comprador", "Demanda_kWh_17-23_Comprador"])
 
                 df_comprador_meses = pd.merge(df_comprador_meses, demanda_mensual_adelante, on="Mes_Periodo", how="left")
-                df_comprador_meses = df_comprador_meses.drop(columns=["Mes_Periodo"])
+                df_comprador_meses = df_comprador_meses.drop(columns=["Demanda_kWh_Dia_Comprador", "Demanda_kWh_0-7_Comprador", "Demanda_kWh_7-17_Comprador", "Demanda_kWh_17-23_Comprador", "Mes_Periodo"])
                 list_var_sistema.append(df_comprador_meses)
             
             elif key == "futuros":

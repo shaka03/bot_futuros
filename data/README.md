@@ -213,7 +213,8 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Beta_MA30_[SERIE]_VencimientoXXMeses | Sensibilidad (Beta) del contrato con media móvil de 30 días. | Numérica (Float) |
 | Precio_Bilateral_COP/kWh_[Bloque] | Precio promedio ponderado total bilateral del mes. | Numérica (Float) |
 | Tipo_noticia | Media móvil de 30 días del valor numérico que representa el sentimiento de la noticia. | Numérica (Float) |
-| Demanda_[Bloque]_XXMeses_Adelante | Demanda de energía eléctrica esperada a los xx meses adelante a partir de hoy por bloques y total diario. | Numérica (Float) |
+| Demanda_Comprador_[Bloque]_XXMeses_Adelante | Demanda de energía eléctrica esperada del comprador a los xx meses adelante a partir de hoy por bloques y total diario. | Numérica (Float) |
+| Demanda_kWh_[Bloque]_Comprador | Demanda de energía eléctrica del comprador en el tiempo t por bloques y total diario. | Numérica (Float) |
 
 ---
 
