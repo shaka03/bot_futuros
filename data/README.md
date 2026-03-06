@@ -199,7 +199,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Columna | Descripción | Tipo de Variable |
 | :--- | :--- | :--- |
 | Fecha | Fecha de operación del sistema. | Temporal (Date) |
-| [SERIE]_Vencimiento_00-06Meses | Precios de futuros de corto plazo (ELM, MTB, DTB, NTB). | Numérica (Float) |
+| [SERIE]_Vencimiento_XXMeses | Precios de futuros de corto plazo (ELM, MTB, DTB, NTB). | Numérica (Float) |
 | Precio_COP/kWh_[Bloque] | Precios spot de energía en bolsa por bloques horarios. | Numérica (Float) |
 | Demanda_kWh_[Bloque] | Demanda de energía eléctrica por bloques y total diario. | Numérica (Float) |
 | AportesHidricos_GWh | Energía que ingresa a los embalses por caudales. | Numérica (Float) |
@@ -209,11 +209,11 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 | Disponibilidad_kWh_[Bloque] | Oferta total disponible en el sistema. | Numérica (Float) |
 | Ratio_Cobertura_[Bloque] | Relación Disponibilidad / Demanda. | Numérica (Float) |
 | Retorno_[Variable] | Variación porcentual (logarítmica) de precios y futuros. | Numérica (Float) |
-| Base_[SERIE]_Vencimiento_00-06Meses | Basis: Diferencia entre el precio spot y el futuro. | Numérica (Float) |
-| Beta_MA30_[SERIE]_Vencimiento00-06Meses | Sensibilidad (Beta) del contrato con media móvil de 30 días. | Numérica (Float) |
+| Base_[SERIE]_Vencimiento_XXMeses | Basis: Diferencia entre el precio spot y el futuro. | Numérica (Float) |
+| Beta_MA30_[SERIE]_VencimientoXXMeses | Sensibilidad (Beta) del contrato con media móvil de 30 días. | Numérica (Float) |
 | Precio_Bilateral_COP/kWh_[Bloque] | Precio promedio ponderado total bilateral del mes. | Numérica (Float) |
 | Tipo_noticia | Media móvil de 30 días del valor numérico que representa el sentimiento de la noticia. | Numérica (Float) |
-| Demanda_[Bloque]_00-06Meses_Adelante | Demanda de energía eléctrica a los xx meses adelante a partir de hoy por bloques y total diario. | Numérica (Float) |
+| Demanda_[Bloque]_XXMeses_Adelante | Demanda de energía eléctrica esperada a los xx meses adelante a partir de hoy por bloques y total diario. | Numérica (Float) |
 
 ---
 
