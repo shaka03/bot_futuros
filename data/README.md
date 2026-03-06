@@ -218,7 +218,18 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 2. fechas_transacciones.csv
+## 2. demanda_COMPRADOR.csv
+**Descripción:** Contiene la información real/esperada de de la demanda de electricidad del comprador no regulado.
+
+| Columna | Descripción | Tipo de Variable |
+| :--- | :--- | :--- |
+| Fecha | Fecha de operación del sistema. | Temporal (Date) |
+| Demanda_Comprador_[Bloque]_XXMeses_Adelante | Demanda de energía eléctrica esperada del comprador a los xx meses adelante a partir de hoy por bloques y total diario. | Numérica (Float) |
+| Demanda_kWh_[Bloque]_Comprador | Demanda de energía eléctrica del comprador en el tiempo t por bloques y total diario. | Numérica (Float) |
+
+---
+
+## 3. fechas_transacciones.csv
 **Descripción:** Corresponde a las fechas en las que hacen las transacciones en el mercado de futuros de electricidad.
 
 | Columna | Descripción | Tipo de Variable |
@@ -227,7 +238,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 3. precios_FUTUROS.csv
+## 4. precios_FUTUROS.csv
 **Descripción:** Precios de cierre de los contratos de futuros de energía eléctrica negociados en el mercado.
 
 | Columna | Descripción | Tipo de Variable |
@@ -243,7 +254,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 4. datos_PRECIOS.csv
+## 5. datos_PRECIOS.csv
 **Descripción:** Precios de spot por franja horario en el mercado eléctrico colombiano.
 
 | Columna | Descripción | Tipo de Variable |
@@ -256,7 +267,7 @@ Este documento proporciona una descripción detallada del dataset limpio, con la
 
 ---
 
-## 5. precios_LIQUIDACION.csv
+## 6. precios_LIQUIDACION.csv
 **Descripción:** Son los precios en los cuales se liquidan los contratos futuros de electricidad.
 
 | Columna | Descripción | Tipo de Variable |
