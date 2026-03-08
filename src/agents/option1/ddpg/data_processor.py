@@ -352,9 +352,9 @@ class DataProcessor:
         return selected
 
 
-if __name__ == "__main__":
-    dp = DataProcessor(CONFIG)
-    bundle = dp.get_agent_data("ELM")
-    print("OK - Bundle listo")
-    print("Secuencias:", bundle.lstm_sequences.shape)
-    print("Capital dinámico COP:", round(bundle.dynamic_initial_capital, 2))
+#if __name__ == "__main__":
+#    dp = DataProcessor(CONFIG)
+#    bundle = dp.get_agent_data("ELM")
+#    print("OK - Bundle listo")
+#    print("Secuencias:", bundle.lstm_sequences.shape)
+#    print("Capital dinámico COP:", round(bundle.dynamic_initial_capital, 2))

@@ -19,7 +19,7 @@ class PathsConfig:
     """Rutas de entrada/salida del proyecto."""
 
     # Base del repositorio (ajustado a archivo actual)
-    project_root: Path = field(default_factory=lambda: Path(__file__).resolve().parents[0])
+    project_root: Path = field(default_factory=lambda: Path(__file__).resolve().parents[4])
 
     # Datos de entrada
     data_dir: Path = field(init=False)

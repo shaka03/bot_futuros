@@ -190,5 +190,5 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     }
 
 
-if __name__ == "__main__":
-    train_ddpg_agent(CONFIG)
+#if __name__ == "__main__":
+#    train_ddpg_agent(CONFIG)

@@ -416,5 +416,5 @@ def evaluate_and_plot(config: ProjectConfig = CONFIG) -> None:
     print(report_df.to_string(index=False))
 
 
-if __name__ == "__main__":
-    evaluate_and_plot(CONFIG)
+#if __name__ == "__main__":
+#    evaluate_and_plot(CONFIG)
