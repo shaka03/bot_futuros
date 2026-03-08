@@ -7,3 +7,4 @@ docs/Trabajo_Integrador/Trabajo_Integrador_Doc
 data/1_raw/*.csv
 src/to_prompt.txt
 src/prompt.txt
+src/prompt_elm.txt
