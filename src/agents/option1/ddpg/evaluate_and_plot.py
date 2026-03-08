@@ -32,10 +32,12 @@ def _resolve_dirs(config: ProjectConfig) -> Tuple[Path, Path]:
 def _split_out_of_sample(
     bundle,
     processor: DataProcessor,
-    test_ratio: float = 0.2,
+    config: ProjectConfig
 ):
     """Construye partición temporal out-of-sample para evaluación."""
     total_seq = bundle.lstm_sequences.shape[0]
+
+    test_ratio = config.general.test_ratio if hasattr(config.general, "test_ratio") else 0.1
     cut = max(1, int(total_seq * (1.0 - test_ratio)))
 
     seq_test = bundle.lstm_sequences[cut:].copy()

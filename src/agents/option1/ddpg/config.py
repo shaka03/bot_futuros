@@ -154,6 +154,8 @@ class GeneralConfig:
 
     seed: int = 42
     total_episodes: int = 1_000
+    log_every: int = 10
+    test_ratio: float = 0.1
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"
