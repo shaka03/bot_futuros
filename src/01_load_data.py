@@ -131,11 +131,11 @@ def load_data_files(
     print("Iniciando carga de datos...")
     
     # Cargar datos de XM
-    get_data_energia(
-        fecha_inicio_str=fecha_inicio_str,
-        fecha_fin_str=fecha_fin_str,
-        data_path=Config.RAW_DATA_PATH
-    )
+    #get_data_energia(
+    #    fecha_inicio_str=fecha_inicio_str,
+    #    fecha_fin_str=fecha_fin_str,
+    #    data_path=Config.RAW_DATA_PATH
+    #)
     
     # Procesar datos de XM
     print("Procesando datos de XM...")
