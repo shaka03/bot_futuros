@@ -17,16 +17,16 @@ from environment import ElectricityHedgingEnv
 
 
 def _resolve_training_hyperparams(config: ProjectConfig) -> Tuple[int, int]:
-    """Extrae total_episodes y log_every con fallback."""
-    total_episodes = int(getattr(config.general, "total_episodes", 200))
-    log_every = int(getattr(config.general, "log_every", 10))
+    """Extrae total_episodes y log_every desde config."""
+    total_episodes = int(config.general.total_episodes)
+    log_every = int(config.general.log_every)
     return total_episodes, log_every
 
 
 def _resolve_output_dirs(config: ProjectConfig) -> Tuple[Path, Path]:
-    """Resuelve directorios para pesos y resultados."""
-    weights_dir = Path(getattr(config.paths, "agents_output_dir", "src/models/option1/ddpg"))
-    results_dir = Path(getattr(config.paths, "results_dir", "results/option1"))
+    """Resuelve directorios para pesos y resultados desde config.paths."""
+    weights_dir = Path(config.paths.model_dir)
+    results_dir = Path(config.paths.results_dir)
     weights_dir.mkdir(parents=True, exist_ok=True)
     results_dir.mkdir(parents=True, exist_ok=True)
     return weights_dir, results_dir
@@ -34,7 +34,7 @@ def _resolve_output_dirs(config: ProjectConfig) -> Tuple[Path, Path]:
 
 def _split_train_bundle(bundle, processor: DataProcessor, config: ProjectConfig):
     """Construye partición temporal de entrenamiento: (1 - test_ratio)."""
-    test_ratio = float(getattr(config.general, "test_ratio", 0.1))
+    test_ratio = float(config.general.test_ratio)
     if not (0.0 < test_ratio < 1.0):
         raise ValueError(f"config.general.test_ratio inválido: {test_ratio}. Debe estar entre (0,1).")
 
@@ -60,13 +60,11 @@ def _split_train_bundle(bundle, processor: DataProcessor, config: ProjectConfig)
     fut = fut[fut["Fecha"].isin(train_timeline)].copy()
     fut_train = fut.set_index(["Fecha", "Nemotecnico"]).sort_index()
 
-    liq_df = (
-        processor.precios_liquidacion_df.copy()
-        if getattr(processor, "precios_liquidacion_df", None) is not None
-        else pd.DataFrame()
-    )
+    liq_df = processor.precios_liquidacion_df.copy() if processor.precios_liquidacion_df is not None else pd.DataFrame()
 
-    return seq_train, fut_train, nem_train, dem_train, liq_df
+    prec_df = processor.datos_precios_df.copy() if processor.datos_precios_df is not None else pd.DataFrame()
+
+    return seq_train, fut_train, nem_train, dem_train, liq_df, prec_df
 
 
 def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
@@ -74,7 +72,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     processor = DataProcessor(config)
     bundle = processor.get_agent_data("ELM")
 
-    seq_train, fut_train, nem_train, dem_train, liq_train = _split_train_bundle(bundle, processor, config)
+    seq_train, fut_train, nem_train, dem_train, liq_train, prec_train = _split_train_bundle(bundle, processor, config)
 
     env = ElectricityHedgingEnv(
         sequences_lstm=seq_train,
@@ -82,6 +80,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         nemotecnico_map_t1_t6=nem_train,
         demand_aligned=dem_train,
         precios_liquidacion=liq_train,
+        datos_precios=prec_train,
         initial_capital=bundle.dynamic_initial_capital,
         config=config,
     )
@@ -102,6 +101,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     margin_calls_count: List[int] = []
     overhedging_penalties: List[float] = []
     episode_times_sec: List[float] = []
+    underhedge_opportunity_penalties: List[float] = []  # nueva métrica para oportunidades de underhedge evitadas
 
     # Nuevas métricas para score combinado
     episode_scores: List[float] = []
@@ -115,9 +115,9 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     ema_abs_pnl = 1.0
     alpha = 0.05  # suavizado EMA
 
-    # Pesos del score combinado (ajustables)
-    w_reward = float(getattr(config.general, "best_model_weight_reward", 0.5))
-    w_pnl = float(getattr(config.general, "best_model_weight_pnl", 0.5))
+    # Pesos del score combinado
+    w_reward = float(config.general.best_model_weight_reward)
+    w_pnl = float(config.general.best_model_weight_pnl)
 
     for episode in range(1, total_episodes + 1):
         t0 = time.perf_counter()
@@ -130,7 +130,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         ep_pnl = 0.0
         ep_margin_calls = 0
         ep_overhedge = 0.0
-
+        ep_underhedge_opportunity = 0.0
         while not (terminated or truncated):
             action = agent.select_action(state, add_noise=True)
 
@@ -143,6 +143,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
             ep_reward += float(reward)
             ep_pnl += float(info.get("pnl_delta_mtm", 0.0)) + float(info.get("pnl_settlement", 0.0))
             ep_overhedge += float(info.get("sobre_cobertura_kwh", 0.0))
+            ep_underhedge_opportunity += float(info.get("underhedge_penalty", 0.0))
 
             if float(info.get("margin_calls_cost", 0.0)) > 0.0:
                 ep_margin_calls += 1
@@ -165,6 +166,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         episode_pnls.append(ep_pnl)
         margin_calls_count.append(ep_margin_calls)
         overhedging_penalties.append(ep_overhedge)
+        underhedge_opportunity_penalties.append(ep_underhedge_opportunity)
         episode_times_sec.append(ep_time)
 
         episode_scores.append(float(episode_score))
@@ -198,6 +200,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
             "episode_score": episode_scores,
             "margin_calls_count": margin_calls_count,
             "overhedging_penalty_kwh_sum": overhedging_penalties,
+            "underhedge_opportunity_penalty_sum": underhedge_opportunity_penalties,
             "episode_time_sec": episode_times_sec,
         }
     )
@@ -209,6 +212,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         "episode_scores": episode_scores,
         "margin_calls_count": margin_calls_count,
         "overhedging_penalties": overhedging_penalties,
+        "underhedge_opportunity_penalties": underhedge_opportunity_penalties,
         "episode_times_sec": episode_times_sec,
     }
 

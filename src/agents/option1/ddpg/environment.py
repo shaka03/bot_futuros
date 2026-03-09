@@ -12,7 +12,6 @@ Incluye:
 
 from __future__ import annotations
 
-import math
 from collections import deque
 from dataclasses import dataclass
 from typing import Deque, Dict, List, Optional, Tuple
@@ -40,6 +39,7 @@ class Position:
     initial_margin_required: float
     maintenance_margin_required: float
     margin_balance: float
+    hold_days: int = 0
 
 
 class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
@@ -54,6 +54,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         nemotecnico_map_t1_t6: pd.DataFrame,       # index Fecha, cols Nemotecnico_t1..t6
         demand_aligned: pd.DataFrame,              # index Fecha
         precios_liquidacion: pd.DataFrame,         # cols: FechaVencimiento, Precio_COP/kWh_Dia
+        datos_precios: pd.DataFrame,
         initial_capital: float,
         config: ProjectConfig = CONFIG,
     ) -> None:
@@ -101,16 +102,19 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
         # Penalizaciones
         self.duplicate_buy_penalty_value: float = self.config.reward.lambda_penalizacion
-        self.turnover_lambda: float = float(getattr(self.config.reward, "lambda_turnover", 0.0))
+        self.turnover_lambda: float = float(self.config.reward.lambda_turnover)
 
-        # Parámetros de rebalanceo (fallback si no están en config)
-        self.max_trade_fraction_per_step: float = float(
-            getattr(self.config.contract, "max_trade_fraction_per_step", 0.20)
-        )
-        self.min_trade_kwh: float = float(getattr(self.config.contract, "min_trade_kwh", 1000.0))
+        # Parámetros de rebalanceo
+        self.max_trade_fraction_per_step: float = float(self.config.contract.max_trade_fraction_per_step)
+        self.min_trade_kwh: float = float(self.config.contract.min_trade_kwh)
 
         # Índice rápido de liquidación: FechaVencimiento -> Precio_COP/kWh_Dia
         self.liq_price_by_date: Dict[pd.Timestamp, float] = self._build_settlement_lookup(self.precios_liquidacion)
+
+        # Parámetro de penalización por oportunidad de sub-cobertura (no cubrir demanda esperada cuando futuro < spot)
+        self.lambda_underhedge: float = float(getattr(self.config.reward, "lambda_underhedge", 1e-4))
+        self.k_progress: float = float(getattr(self.config.reward, "k_progress", 1e-4))
+        self.min_hold_days: int = int(getattr(self.config.contract, "min_hold_days", 3))
 
         self._validate_inputs()
 
@@ -165,6 +169,13 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         sells_count = 0
         turnover_kwh = 0.0
 
+        prev_cov_by_slot = self._covered_kwh_by_slot()
+        prev_shortfall_total = 0.0
+        for m in range(1, self.config.contract.max_horizon_months + 1):
+            dcol = f"Demanda_Comprador_Dia_{m:02d}Meses_Adelante"
+            tgt = self._get_expected_demand(current_date, dcol)
+            prev_shortfall_total += max(0.0, tgt - prev_cov_by_slot[m])
+
         # --------------------------------------------------------------
         # 1) Procesamiento de acciones (rebalanceo controlado por slot)
         # --------------------------------------------------------------
@@ -187,6 +198,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             expiry_date = pd.to_datetime(row["FechaVencimientoContrato"])
             demand_col = f"Demanda_Comprador_Dia_{month_slot:02d}Meses_Adelante"
             expected_demand_kwh = self._get_expected_demand(current_date, demand_col)
+
 
             # límite de ajuste por step para evitar churn
             max_trade_kwh = self.max_trade_fraction_per_step * max(expected_demand_kwh, 1.0)
@@ -283,6 +295,9 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             elif delta_kwh < 0:
                 if nem in self.inventory:
                     pos = self.inventory[nem]
+                    if pos.hold_days < self.min_hold_days:
+                        continue
+
                     close_qty = int(abs(delta_kwh) // self.config.contract.tamano_kwh)
                     close_qty = min(close_qty, pos.quantity_contracts)
                     if close_qty <= 0:
@@ -302,6 +317,10 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     if nem not in self.inventory:
                         self.coverage_state[month_slot - 1] = 0.0
                 # Si no existe, ignorar (no short naked)
+        
+        # Actualizar hold_days para todas las posiciones abiertas
+        for p in self.inventory.values():
+            p.hold_days += 1
 
         # --------------------------------------------------------------
         # 2) Ciclo de vida del contrato (obligatorio en cada t)
@@ -377,11 +396,30 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         pnl_mean_30 = float(np.mean(self.pnl_history)) if len(self.pnl_history) > 0 else 0.0
         risk_penalty = self.config.reward.lambda_riesgo * ((pnl_step_total - pnl_mean_30) ** 2)
 
+        # --------------------------------------------------------------
+        # 5) Penalización por oportunidad de sub-cobertura (no cubrir demanda esperada cuando futuro < spot)
+        # --------------------------------------------------------------
+        curr_cov_by_slot = self._covered_kwh_by_slot()
+        current_shortfall_total = 0.0
+
+        for m in range(1, self.config.contract.max_horizon_months + 1):
+            dcol = f"Demanda_Comprador_Dia_{m:02d}Meses_Adelante"
+            tgt = self._get_expected_demand(current_date, dcol)
+            current_shortfall_total += max(0.0, tgt - curr_cov_by_slot[m])
+
+        shortfall_kwh = float(current_shortfall_total)
+        underhedge_penalty = self.lambda_underhedge * (shortfall_kwh / 1_000.0)
+
+        progress_kwh = float(prev_shortfall_total - current_shortfall_total)  # >0 mejora cobertura
+        progress_reward = self.k_progress * progress_kwh
+
         reward = (
             pnl_step_total
+            + progress_reward
             - risk_penalty
             - overhedge_penalty
             - turnover_penalty
+            - underhedge_penalty
             - transaction_costs
             - duplicate_buy_penalty
         )
@@ -416,6 +454,10 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "buys_count": int(buys_count),
             "sells_count": int(sells_count),
             "margin_balance_total": float(self.margin_account_balance_total),
+            "shortfall_kwh": float(shortfall_kwh),
+            "underhedge_penalty": float(underhedge_penalty),
+            "progress_kwh": float(progress_kwh),
+            "progress_reward": float(progress_reward)
         }
 
         return obs, float(reward), terminated, truncated, info
@@ -433,7 +475,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
         # Se asume que los últimos 6 features son Coverage_Mes_01..06.
         if obs.shape[1] >= self.config.contract.max_horizon_months:
-            obs[:, -self.config.contract.max_horizon_months :] = self.coverage_state.reshape(1, -1)
+            obs[:, -self.config.contract.max_horizon_months:] = self.coverage_state.reshape(1, -1)
 
         return obs
 
@@ -445,8 +487,8 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             raise ValueError(f"Acción inválida, se esperaban {dim} dimensiones y llegaron {a.shape[0]}.")
 
         out = np.zeros_like(a, dtype=np.int8)
-        out[a <= -0.33] = -1
-        out[a >= 0.33] = 1
+        out[a <= -0.10] = -1
+        out[a >= 0.10] = 1
         return out
 
     def _get_nemotecnico_for_slot(self, date: pd.Timestamp, month_slot: int) -> Optional[str]:
@@ -501,13 +543,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         return float(pnl_close), float(released_margin), float(close_commission)
 
     def _close_position_partial(self, nem: str, close_price: float, quantity_to_close: int) -> Tuple[float, float, float]:
-        """Cierre parcial FIFO simplificado de una posición por nem.
-
-        Retorna:
-        - pnl_cierre (desde prev_price para qty cerrada)
-        - margen_liberado proporcional
-        - comisión_cierre
-        """
+        """Cierre parcial FIFO simplificado de una posición por nem."""
         pos = self.inventory[nem]
         qty = int(max(0, min(quantity_to_close, pos.quantity_contracts)))
         if qty == 0:
@@ -582,3 +618,10 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             col = f"Nemotecnico_t{m}"
             if col not in self.nemotecnico_map.columns:
                 raise KeyError(f"nemotecnico_map_t1_t6 debe incluir {col}")
+    
+    # Cobertura actual por slot (total)
+    def _covered_kwh_by_slot(self) -> Dict[int, float]:
+        cov = {m: 0.0 for m in range(1, self.config.contract.max_horizon_months + 1)}
+        for p in self.inventory.values():
+            cov[p.month_slot] += p.quantity_contracts * p.contract_size_kwh
+        return cov

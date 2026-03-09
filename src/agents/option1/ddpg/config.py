@@ -45,16 +45,8 @@ class PathsConfig:
         object.__setattr__(self, "datos_precios_file", data_dir / "datos_PRECIOS.csv")
         object.__setattr__(self, "precios_liquidacion_file", data_dir / "precios_LIQUIDACION.csv")
 
-        object.__setattr__(
-            self,
-            "model_dir",
-            self.project_root / "src" / "models" / "option1" / "ddpg",
-        )
-        object.__setattr__(
-            self,
-            "results_dir",
-            self.project_root / "results" / "option1",
-        )
+        object.__setattr__(self, "model_dir", self.project_root / "src" / "models" / "option1" / "ddpg")
+        object.__setattr__(self, "results_dir", self.project_root / "results" / "option1")
 
     def ensure_output_dirs(self) -> None:
         """Crea carpetas de salida si no existen."""
@@ -66,8 +58,8 @@ class PathsConfig:
 # 2) Especificaciones de Contratos
 # =========================
 @dataclass(frozen=True)
-class ContractSpecConfig:
-    """Parámetros del contrato ELM y límites de cobertura."""
+class ContractConfig:
+    """Parámetros del contrato ELM y límites de cobertura/rebalanceo."""
 
     contract_type: str = "ELM"
     tamano_kwh: int = 360_000
@@ -78,6 +70,11 @@ class ContractSpecConfig:
     # Restricción principal del entorno
     max_horizon_months: int = 6
 
+    # Control de rebalanceo por step (evita churn)
+    max_trade_fraction_per_step: float = 0.20
+    min_trade_kwh: float = 1_000.0
+    min_hold_days: int = 3
+
 
 # =========================
 # 3) Finanzas y Garantías
@@ -86,7 +83,7 @@ class ContractSpecConfig:
 class FinanceConfig:
     """Parámetros de costos, margen y capital inicial dinámico."""
 
-    comision_transaccion: float = 0.03
+    comision_transaccion: float = 0.0005 # 0.05% por transacción
     umbral_margin_call: float = 0.75
 
     # Rangos de vencimiento en meses -> porcentaje de margen
@@ -110,10 +107,11 @@ class FinanceConfig:
 # =========================
 @dataclass(frozen=True)
 class RewardConfig:
-    """Hiperparámetros de la función de recompensa."""
-
     lambda_riesgo: float = 1e-12
     lambda_penalizacion: float = 1e-5
+    lambda_turnover: float = 1e-6
+    lambda_underhedge: float = 1e-4
+    k_progress: float = 1e-4
     pnl_window_size: int = 30
 
 
@@ -143,58 +141,22 @@ class DDPGConfig:
     tau: float = 0.005
     batch_size: int = 256
     buffer_capacity: int = 300_000
-    exploration_noise_std: float = 0.2
+    exploration_noise_std: float = 0.20
     exploration_noise_min_std: float = 0.03
     exploration_noise_decay: float = 0.997
 
-@dataclass
-class DDPGConfig:
-    actor_lr: float = 1e-4
-    critic_lr: float = 3e-4
-    gamma: float = 0.99
-    tau: float = 0.005
-    batch_size: int = 256
-    buffer_capacity: int = 300_000
-    exploration_noise_std: float = 0.20
-    exploration_noise_min: float = 0.03
-    exploration_noise_decay: float = 0.997
-
 
 # =========================
-# 7) Recompensas
-# =========================
-@dataclass
-class RewardConfig:
-    lambda_riesgo: float = 1e-12
-    lambda_penalizacion: float = 1e-5
-    lambda_turnover: float = 1e-6
-    pnl_window_size: int = 30
-
-# =========================
-# 8) Contratos
-# =========================
-@dataclass
-class ContractConfig:
-    contract_type: str = "ELM"
-    max_horizon_months: int = 6
-    tamano_kwh: int = 1000
-    max_ordenes: int = 300
-
-    # Control de rebalanceo por step (evita churn)
-    max_trade_fraction_per_step: float = 0.20
-    min_trade_kwh: float = 1000.0
-
-
-# =========================
-# 9) General
+# 7) General
 # =========================
 @dataclass(frozen=True)
 class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
+
     seed: int = 42
     total_episodes: int = 400
     log_every: int = 10
-    test_ratio: float = 0.10 # 90% entrenamiento, 10% prueba
+    test_ratio: float = 0.10  # 90% entrenamiento, 10% prueba
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"
@@ -209,15 +171,12 @@ class ProjectConfig:
     """Contenedor principal de toda la configuración del proyecto."""
 
     paths: PathsConfig = field(default_factory=PathsConfig)
-    contract: ContractSpecConfig = field(default_factory=ContractSpecConfig)
+    contract: ContractConfig = field(default_factory=ContractConfig)
     finance: FinanceConfig = field(default_factory=FinanceConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)
     lstm: LSTMConfig = field(default_factory=LSTMConfig)
     ddpg: DDPGConfig = field(default_factory=DDPGConfig)
     general: GeneralConfig = field(default_factory=GeneralConfig)
-    contract: ContractConfig = field(default_factory=ContractConfig)
-    reward: RewardConfig = field(default_factory=RewardConfig)
-    ddpg: DDPGConfig = field(default_factory=DDPGConfig)
 
 
 # Instancia única de configuración para importar en otros módulos.
