@@ -136,6 +136,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "opportunity_cost": 0.0,
             "risk_penalty": 0.0,
             "overhedge_penalty": 0.0,
+            "current_date": str(self.timeline[self.current_step].date()),
         }
         return obs, info
 
@@ -292,7 +293,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                         pnl_delta -= variation_margin
                     else:
                         truncated = True
-                        pnl_delta -= 1_000_000.0  # penalización severa bancarrota
+                        pnl_delta -= 1_000_000_000.0  # penalización severa bancarrota
                         break
 
                 if pos.margin_balance > pos.initial_margin_required:
@@ -428,6 +429,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "reward_tx_norm": float(transaction_norm),
             "reward_duplicate_norm": float(duplicate_norm),
             "reward_opportunity_norm": float(opportunity_norm),
+            "current_date": str(current_date.date())
         }
 
         return obs, float(reward), terminated, truncated, info

@@ -113,7 +113,7 @@ class FinanceConfig:
 class RewardConfig:
     """Hiperparámetros de la función de recompensa."""
 
-    lambda_riesgo: float = 1e-12
+    lambda_riesgo: float = 1e-8
     lambda_penalizacion: float = 0.0
     lambda_penalizacion_duplicados: float = 1e-8
     lambda_oportunidad: float = 1e-2
@@ -173,7 +173,7 @@ class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
     seed: int = 42
-    total_episodes: int = 500
+    total_episodes: int = 100
     test_ratio: float = 0.1
 
     # Inicio de iteraciones de negocio

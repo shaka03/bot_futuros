@@ -169,6 +169,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         margin_calls_count.append(ep_margin_calls)
         overhedging_penalties.append(ep_overhedge)
         episode_times_sec.append(ep_time)
+        end_date = step_info.get("current_date", "N/A")
 
         # ------------------------------------------------------------------
         # 6) Guardado best model
@@ -185,7 +186,14 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
                 f"Reward={ep_reward:,.2f} | "
                 f"PnL={ep_pnl:,.2f} | "
                 f"NoiseStd={agent.noise_std:.4f} | "
-                f"Tiempo={ep_time:.2f}s"
+                f"Tiempo={ep_time:.2f}s | "
+                f"Cap={step_info.get('capital_actual', 0):,.0f} | "
+                f"Margin={step_info.get('margin_balance_total', 0):,.0f} | "
+                f"OppCost={step_info.get('opportunity_cost', 0):,.2f} | "
+                f"Overhedge={step_info.get('sobre_cobertura_kwh', 0):,.0f} | "
+                f"Truncated={truncated} | "
+                f"Terminated={terminated} | "
+                f"EndDate={end_date}"
             )
 
     # ------------------------------------------------------------------
