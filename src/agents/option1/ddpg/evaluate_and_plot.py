@@ -119,6 +119,7 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
     # Datos completos
     processor = DataProcessor(config)
     bundle = processor.get_agent_data("ELM")
+    initial_capital = config.finance.initial_capital_min
 
     # Split test
     seq_test, fut_test, nem_test, dem_test, liq_test = _split_out_of_sample(bundle, processor, config)
@@ -130,7 +131,7 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
         nemotecnico_map_t1_t6=nem_test,
         demand_aligned=dem_test,
         precios_liquidacion=liq_test,
-        initial_capital=bundle.dynamic_initial_capital,
+        initial_capital=initial_capital,
         config=config,
     )
 
@@ -247,11 +248,15 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
                 "contratos_netos_3": int(info.get("contracts_net_3", 0)),
                 "contratos_netos_4": int(info.get("contracts_net_4", 0)),
                 "contratos_netos_5": int(info.get("contracts_net_5", 0)),
-                "contratos_netos_6": int(info.get("contracts_net_6", 0))
+                "contratos_netos_6": int(info.get("contracts_net_6", 0)),
+                "terminated": int(terminated),
+                "truncated": int(truncated)
             }
         )
 
         state = next_state
+        
+    print(f"Eval ended | terminated={terminated} | truncated={truncated} | last_date={current_date}")
 
     eval_df = pd.DataFrame(logs)
     eval_df.to_csv(results_dir / "evaluation_rollout_ddpg.csv", index=False)

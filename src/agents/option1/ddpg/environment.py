@@ -354,17 +354,26 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         pnl_step_total = pnl_delta + settlement_pnl
         pnl_mean_30 = float(np.mean(self.pnl_history)) if len(self.pnl_history) > 0 else 0.0
         downside = max(0.0, pnl_mean_30 - pnl_step_total) # solo penaliza si el paso actual es peor que la media histórica
-        risk_penalty = self.config.reward.lambda_riesgo * (downside ** 2)
+        risk_penalty = self.config.reward.lambda_riesgo * (downside ** 2) / max(self.config.reward.scale_money, 1.0)
+
+        money_scale = max(float(self.config.reward.scale_money), 1.0)
+        kwh_scale = max(float(self.config.reward.scale_kwh), 1.0)
+
+        pnl_norm = pnl_step_total / money_scale
+        risk_norm = risk_penalty / money_scale
+        overhedge_norm = overhedge_kwh / kwh_scale
+        transaction_norm = transaction_costs / money_scale
+        duplicate_norm = duplicate_buy_penalty / money_scale
+        opportunity_norm = opportunity_cost / money_scale
 
         reward = (
-            pnl_step_total
-            - risk_penalty
-            - overhedge_penalty
-            - transaction_costs
-            - duplicate_buy_penalty
-            - self.config.reward.lambda_oportunidad * opportunity_cost
+            self.config.reward.w_pnl * pnl_norm
+            - self.config.reward.w_risk * risk_norm
+            - self.config.reward.w_overhedge * overhedge_norm
+            - self.config.reward.w_transaction * transaction_norm
+            - self.config.reward.w_duplicate * duplicate_norm
+            - self.config.reward.w_opportunity * opportunity_norm
         )
-
         self.pnl_history.append(float(pnl_step_total))
         self.margin_account_balance_total = float(sum(p.margin_balance for p in self.inventory.values()))
 
@@ -411,7 +420,14 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "contracts_net_3": int(contracts_net_step_by_slot[2]),
             "contracts_net_4": int(contracts_net_step_by_slot[3]),
             "contracts_net_5": int(contracts_net_step_by_slot[4]),
-            "contracts_net_6": int(contracts_net_step_by_slot[5])
+            "contracts_net_6": int(contracts_net_step_by_slot[5]),
+            "reward_total": float(reward),
+            "reward_pnl_norm": float(pnl_norm),
+            "reward_risk_norm": float(risk_norm),
+            "reward_overhedge_norm": float(overhedge_norm),
+            "reward_tx_norm": float(transaction_norm),
+            "reward_duplicate_norm": float(duplicate_norm),
+            "reward_opportunity_norm": float(opportunity_norm),
         }
 
         return obs, float(reward), terminated, truncated, info

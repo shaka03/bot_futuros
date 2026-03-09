@@ -86,7 +86,7 @@ class ContractSpecConfig:
 class FinanceConfig:
     """Parámetros de costos, margen y capital inicial dinámico."""
 
-    comision_transaccion: float = 0.01
+    comision_transaccion: float = 0.001 # 0.1% por transacción
     umbral_margin_call: float = 0.75
 
     # Rangos de vencimiento en meses -> porcentaje de margen
@@ -103,6 +103,7 @@ class FinanceConfig:
 
     # Hiperparámetro para cálculo de capital inicial dinámico
     factor_holgura: float = 3.0
+    initial_capital_min: float = 1_000_000_000  # 1 mil millones COP
 
 
 # =========================
@@ -117,6 +118,20 @@ class RewardConfig:
     lambda_penalizacion_duplicados: float = 1e-8
     lambda_oportunidad: float = 1e-2
     pnl_window_size: int = 30
+
+    # Normalización
+    w_pnl: float = 1.0
+    w_risk: float = 0.10
+    w_overhedge: float = 0.20
+    w_transaction: float = 0.05
+    w_duplicate: float = 0.01
+    w_opportunity: float = 0.30
+
+    # Escalas de normalización (COP / kWh)
+    scale_money: float = 1e8
+    scale_kwh: float = 1e6
+
+    
 
 
 # =========================

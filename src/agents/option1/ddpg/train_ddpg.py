@@ -78,6 +78,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     # ------------------------------------------------------------------
     processor = DataProcessor(config)
     bundle = processor.get_agent_data("ELM")
+    initial_capital = config.finance.initial_capital_min
 
     seq_train, fut_train, nem_train, dem_train, liq_train = _split_train_bundle(bundle, processor, config)
 
@@ -87,7 +88,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         nemotecnico_map_t1_t6=nem_train,
         demand_aligned=dem_train,
         precios_liquidacion=liq_train,
-        initial_capital=bundle.dynamic_initial_capital,
+        initial_capital=initial_capital,
         config=config,
     )
 
