@@ -6,7 +6,7 @@ Incluye:
 - Ciclo de vida del contrato: vencimiento -> cash settlement + liberación de margen.
 - Mark-to-Market diario para contratos vigentes.
 - Gestión de garantías: margin call, retiros y bancarrota (truncated).
-- Recompensa media-varianza con penalizaciones por sobre-cobertura y compra duplicada.
+- Recompensa media-varianza con penalizaciones por sobre-cobertura, compra duplicada y costo de oportunidad por sub-cobertura.
 """
 
 from __future__ import annotations
@@ -99,7 +99,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         self.coverage_state: np.ndarray = np.zeros(self.config.contract.max_horizon_months, dtype=np.float32)
 
         # Penalización por compra duplicada (hiperparámetro simple)
-        self.duplicate_buy_penalty_value: float = self.config.reward.lambda_penalizacion
+        self.duplicate_buy_penalty_value: float = self.config.reward.lambda_penalizacion_duplicados
 
         # Índice rápido de liquidación: FechaVencimiento -> Precio_COP/kWh_Dia
         self.liq_price_by_date: Dict[pd.Timestamp, float] = self._build_settlement_lookup(self.precios_liquidacion)
@@ -131,6 +131,11 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "capital_actual": self.current_capital,
             "sobre_cobertura_kwh": 0.0,
             "positions_open": 0,
+            "pnl_mtm": 0.0,
+            "pnl_settlement": 0.0,
+            "opportunity_cost": 0.0,
+            "risk_penalty": 0.0,
+            "overhedge_penalty": 0.0,
         }
         return obs, info
 
@@ -143,7 +148,9 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         truncated = False
 
         current_date = self.timeline[self.current_step]
+        self._roll_positions_slots(current_date)
         discrete_actions = self._discretize_action(action)
+        executed_actions = np.zeros_like(discrete_actions, dtype=np.int8)
 
         pnl_delta = 0.0
         transaction_costs = 0.0
@@ -151,6 +158,9 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         margin_calls_cost = 0.0
         withdrawals = 0.0
         settlement_pnl = 0.0
+
+        contracts_net_step_by_slot = np.zeros(self.config.contract.max_horizon_months, dtype=np.int32)
+        demand_to_cover_kwh_by_slot = np.zeros(self.config.contract.max_horizon_months, dtype=np.float64)
 
         # --------------------------------------------------------------
         # 1) Procesamiento de acciones (compras / ventas)
@@ -174,6 +184,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             expiry_date = pd.to_datetime(row["FechaVencimientoContrato"])
             demand_col = f"Demanda_Comprador_Dia_{month_slot:02d}Meses_Adelante"
             expected_demand_kwh = self._get_expected_demand(current_date, demand_col)
+            demand_to_cover_kwh_by_slot[month_slot - 1] = float(expected_demand_kwh)    
 
             # BUY
             if act == 1:
@@ -198,6 +209,8 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                 if self.current_capital >= required_cash:
                     self.current_capital -= required_cash
                     transaction_costs += commission
+                    self.coverage_state[month_slot - 1] = 1.0
+                    executed_actions[month_slot - 1] = 1
 
                     self.inventory[nem] = Position(
                         nemotecnico=nem,
@@ -213,15 +226,20 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                         margin_balance=initial_margin,
                     )
                     self.coverage_state[month_slot - 1] = 1.0
+                    contracts_net_step_by_slot[month_slot - 1] += int(qty_contracts)
 
             # SELL (cierre voluntario)
             elif act == -1:
                 if nem in self.inventory:
+                    qty_to_sell = self.inventory[nem].quantity_contracts
                     close_pnl, released_margin, close_commission = self._close_position(nem, price_today)
                     pnl_delta += close_pnl
                     self.current_capital += released_margin
                     transaction_costs += close_commission
                     self.coverage_state[month_slot - 1] = 0.0
+                    self.coverage_state[month_slot - 1] = 0.0
+                    executed_actions[month_slot - 1] = -1
+                    contracts_net_step_by_slot[month_slot - 1] -= int(qty_to_sell)
                 # Si no existe, se ignora (no short naked)
 
         # --------------------------------------------------------------
@@ -285,17 +303,58 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     pnl_delta += excess
 
         # --------------------------------------------------------------
-        # 3) Penalización sobre-cobertura
+        # 3) Penalización sobre-cobertura y sub-cobertura
         # --------------------------------------------------------------
         overhedge_kwh = self._compute_overhedge_kwh(current_date)
         overhedge_penalty = self.config.reward.lambda_penalizacion * overhedge_kwh
+
+        coverage_by_slot_kwh: Dict[int, float] = {
+            m: 0.0 for m in range(1, self.config.contract.max_horizon_months + 1)
+        }
+
+        for pos in self.inventory.values():
+            coverage_by_slot_kwh[pos.month_slot] += pos.quantity_contracts * pos.contract_size_kwh
+        
+        # Spot del día (promedio simple de precios disponibles t1..t6)
+        spot_candidates: List[float] = []
+        for m in range(1, self.config.contract.max_horizon_months + 1):
+            nem_m = self._get_nemotecnico_for_slot(current_date, m)
+            if nem_m is None:
+                continue
+            p_m = self._get_price(current_date, nem_m)
+            if p_m is not None and np.isfinite(p_m):
+                spot_candidates.append(float(p_m))
+        spot_price_ref = float(np.mean(spot_candidates)) if spot_candidates else 0.0
+
+        # Costo de oportunidad por shortfall:
+        # Castiga no cubrir cuando ex-post el spot estuvo por encima del futuro del slot
+        opportunity_cost = 0.0
+        for month_slot in range(1, self.config.contract.max_horizon_months + 1):
+            demand_col = f"Demanda_Comprador_Dia_{month_slot:02d}Meses_Adelante"
+            expected_demand_kwh = self._get_expected_demand(current_date, demand_col)
+            covered_kwh = coverage_by_slot_kwh[month_slot]
+
+            shortfall_kwh = max(0.0, expected_demand_kwh - covered_kwh)
+            if shortfall_kwh <= 0.0:
+                continue
+
+            nem_slot = self._get_nemotecnico_for_slot(current_date, month_slot)
+            if nem_slot is None:
+                continue
+            fut_price = self._get_price(current_date, nem_slot)
+            if fut_price is None:
+                continue
+
+            spread = max(0.0, spot_price_ref - float(fut_price))
+            opportunity_cost += spread * shortfall_kwh
 
         # --------------------------------------------------------------
         # 4) Recompensa media-varianza
         # --------------------------------------------------------------
         pnl_step_total = pnl_delta + settlement_pnl
         pnl_mean_30 = float(np.mean(self.pnl_history)) if len(self.pnl_history) > 0 else 0.0
-        risk_penalty = self.config.reward.lambda_riesgo * ((pnl_step_total - pnl_mean_30) ** 2)
+        downside = max(0.0, pnl_mean_30 - pnl_step_total) # solo penaliza si el paso actual es peor que la media histórica
+        risk_penalty = self.config.reward.lambda_riesgo * (downside ** 2)
 
         reward = (
             pnl_step_total
@@ -303,6 +362,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             - overhedge_penalty
             - transaction_costs
             - duplicate_buy_penalty
+            - self.config.reward.lambda_oportunidad * opportunity_cost
         )
 
         self.pnl_history.append(float(pnl_step_total))
@@ -326,8 +386,32 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "transaction_costs": float(transaction_costs),
             "margin_calls_cost": float(margin_calls_cost),
             "withdrawals": float(withdrawals),
+            "risk_penalty": float(risk_penalty),
+            "overhedge_penalty": float(overhedge_penalty),
+            "opportunity_cost": float(opportunity_cost),
+            "spot_price_ref": float(spot_price_ref),
             "duplicate_buy_penalty": float(duplicate_buy_penalty),
             "margin_balance_total": float(self.margin_account_balance_total),
+            "executed_disc_1": int(executed_actions[0]),
+            "executed_disc_2": int(executed_actions[1]),
+            "executed_disc_3": int(executed_actions[2]),
+            "executed_disc_4": int(executed_actions[3]),
+            "executed_disc_5": int(executed_actions[4]),
+            "executed_disc_6": int(executed_actions[5]),
+            "pnl_mtm": float(pnl_delta),
+            "pnl_settlement": float(settlement_pnl),
+            "demand_to_cover_kwh_1": float(demand_to_cover_kwh_by_slot[0]),
+            "demand_to_cover_kwh_2": float(demand_to_cover_kwh_by_slot[1]),
+            "demand_to_cover_kwh_3": float(demand_to_cover_kwh_by_slot[2]),
+            "demand_to_cover_kwh_4": float(demand_to_cover_kwh_by_slot[3]),
+            "demand_to_cover_kwh_5": float(demand_to_cover_kwh_by_slot[4]),
+            "demand_to_cover_kwh_6": float(demand_to_cover_kwh_by_slot[5]),
+            "contracts_net_1": int(contracts_net_step_by_slot[0]),
+            "contracts_net_2": int(contracts_net_step_by_slot[1]),
+            "contracts_net_3": int(contracts_net_step_by_slot[2]),
+            "contracts_net_4": int(contracts_net_step_by_slot[3]),
+            "contracts_net_5": int(contracts_net_step_by_slot[4]),
+            "contracts_net_6": int(contracts_net_step_by_slot[5])
         }
 
         return obs, float(reward), terminated, truncated, info
@@ -467,3 +551,11 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             col = f"Nemotecnico_t{m}"
             if col not in self.nemotecnico_map.columns:
                 raise KeyError(f"nemotecnico_map_t1_t6 debe incluir {col}")
+    
+    def _roll_positions_slots(self, current_date: pd.Timestamp) -> None:
+        for pos in self.inventory.values():
+            months_diff = (pos.fecha_vencimiento.year - current_date.year) * 12 + (
+                pos.fecha_vencimiento.month - current_date.month
+            )
+            new_slot = max(1, min(self.config.contract.max_horizon_months, months_diff + 1))
+            pos.month_slot = int(new_slot)

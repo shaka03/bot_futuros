@@ -167,9 +167,9 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
         action = agent.select_action(state, add_noise=False)  # (6,)
 
         # para log de acciones discretizadas
-        action_disc = np.zeros_like(action, dtype=np.int8)
-        action_disc[action <= -0.33] = -1
-        action_disc[action >= 0.33] = 1
+        action_disc_raw = np.zeros_like(action, dtype=np.int8)
+        action_disc_raw[action <= -0.33] = -1
+        action_disc_raw[action >= 0.33] = 1
 
         current_date = env_test.timeline[env_test.current_step]
 
@@ -214,13 +214,19 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
                 "action_cont_4": float(action[3]),
                 "action_cont_5": float(action[4]),
                 "action_cont_6": float(action[5]),
-                "action_disc_1": int(action_disc[0]),
-                "action_disc_2": int(action_disc[1]),
-                "action_disc_3": int(action_disc[2]),
-                "action_disc_4": int(action_disc[3]),
-                "action_disc_5": int(action_disc[4]),
-                "action_disc_6": int(action_disc[5]),
-                "nem_slot_1": nem_by_slot["slot_1"],
+                "action_disc_raw_1": int(action_disc_raw[0]),
+                "action_disc_raw_2": int(action_disc_raw[1]),
+                "action_disc_raw_3": int(action_disc_raw[2]),
+                "action_disc_raw_4": int(action_disc_raw[3]),
+                "action_disc_raw_5": int(action_disc_raw[4]),
+                "action_disc_raw_6": int(action_disc_raw[5]),
+                "action_disc_exec_1": int(info.get("executed_disc_1", 0)),
+                "action_disc_exec_2": int(info.get("executed_disc_2", 0)),
+                "action_disc_exec_3": int(info.get("executed_disc_3", 0)),
+                "action_disc_exec_4": int(info.get("executed_disc_4", 0)),
+                "action_disc_exec_5": int(info.get("executed_disc_5", 0)),
+                "action_disc_exec_6": int(info.get("executed_disc_6", 0)),
+                "nem_slot_1": nem_by_slot["slot_1"],    
                 "nem_slot_2": nem_by_slot["slot_2"],
                 "nem_slot_3": nem_by_slot["slot_3"],
                 "nem_slot_4": nem_by_slot["slot_4"],
@@ -228,6 +234,20 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
                 "nem_slot_6": nem_by_slot["slot_6"],
                 "margin_calls_cost": float(info.get("margin_calls_cost", 0.0)),
                 "transaction_costs": float(info.get("transaction_costs", 0.0)),
+                "liquidacion_mtm": float(info.get("pnl_mtm", 0.0)),
+                "liquidacion_vencimiento": float(info.get("pnl_settlement", 0.0)),
+                "demanda_cubrir_kwh_1": float(info.get("demand_to_cover_kwh_1", 0.0)),
+                "demanda_cubrir_kwh_2": float(info.get("demand_to_cover_kwh_2", 0.0)),
+                "demanda_cubrir_kwh_3": float(info.get("demand_to_cover_kwh_3", 0.0)),
+                "demanda_cubrir_kwh_4": float(info.get("demand_to_cover_kwh_4", 0.0)),
+                "demanda_cubrir_kwh_5": float(info.get("demand_to_cover_kwh_5", 0.0)),
+                "demanda_cubrir_kwh_6": float(info.get("demand_to_cover_kwh_6", 0.0)),
+                "contratos_netos_1": int(info.get("contracts_net_1", 0)),
+                "contratos_netos_2": int(info.get("contracts_net_2", 0)),
+                "contratos_netos_3": int(info.get("contracts_net_3", 0)),
+                "contratos_netos_4": int(info.get("contracts_net_4", 0)),
+                "contratos_netos_5": int(info.get("contracts_net_5", 0)),
+                "contratos_netos_6": int(info.get("contracts_net_6", 0))
             }
         )
 
@@ -365,7 +385,7 @@ def plot_actions_heatmap(results_dir: Path, eval_df: pd.DataFrame) -> None:
     """Gráfico 4: Mapa de calor de decisiones por fecha y horizonte."""
     # Matriz: filas=Fecha, columnas=slot_1..slot_6, valores acción discreta
     mat = eval_df[
-        ["Fecha", "action_disc_1", "action_disc_2", "action_disc_3", "action_disc_4", "action_disc_5", "action_disc_6"]
+        ["Fecha", "action_disc_exec_1", "action_disc_exec_2", "action_disc_exec_3", "action_disc_exec_4", "action_disc_exec_5", "action_disc_exec_6"]
     ].copy()
     mat["Fecha"] = pd.to_datetime(mat["Fecha"]).dt.strftime("%Y-%m-%d")
     mat = mat.set_index("Fecha")
@@ -377,6 +397,8 @@ def plot_actions_heatmap(results_dir: Path, eval_df: pd.DataFrame) -> None:
         center=0,
         cbar_kws={"label": "Acción discreta (-1,0,1)"},
         ax=ax,
+        vmin=-1,
+        vmax=1,
     )
     ax.set_title("Mapa de Calor de Acciones por Horizonte (1..6 meses)")
     ax.set_xlabel("Fecha")

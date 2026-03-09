@@ -113,7 +113,9 @@ class RewardConfig:
     """Hiperparámetros de la función de recompensa."""
 
     lambda_riesgo: float = 1e-12
-    lambda_penalizacion: float = 1e-5
+    lambda_penalizacion: float = 0.0
+    lambda_penalizacion_duplicados: float = 1e-8
+    lambda_oportunidad: float = 1e-2
     pnl_window_size: int = 30
 
 
@@ -145,7 +147,7 @@ class DDPGConfig:
     buffer_capacity: int = 300_000
     exploration_noise_std: float = 0.2
     exploration_noise_min_std: float = 0.01
-    exploration_noise_decay: float = 0.997
+    exploration_noise_decay: float = 0.999
 
 
 # =========================
@@ -156,7 +158,7 @@ class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
     seed: int = 42
-    total_episodes: int = 400
+    total_episodes: int = 500
     test_ratio: float = 0.1
 
     # Inicio de iteraciones de negocio

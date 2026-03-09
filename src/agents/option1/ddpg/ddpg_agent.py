@@ -257,7 +257,7 @@ class DDPGAgent:
         self.noise_std_init = float(self.config.ddpg.exploration_noise_std)
         self.noise_std = float(self.config.ddpg.exploration_noise_std)
         self.noise_std_min = float(self.config.ddpg.exploration_noise_min_std)
-        self.noise_decay = 0.995  # proporcional a episodios
+        self.noise_decay = float(self.config.ddpg.exploration_noise_decay)
 
         # Buffer
         self.replay_buffer = SequenceReplayBuffer(
