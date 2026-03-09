@@ -22,7 +22,7 @@ sns.set_theme(style="whitegrid", context="talk")
 
 def _resolve_dirs(config: ProjectConfig) -> Tuple[Path, Path]:
     """Resuelve directorios de pesos y resultados."""
-    weights_dir = Path(getattr(config.paths, "agents_output_dir", "src/models/option1/ddpg"))
+    weights_dir = Path(getattr(config.paths, "model_dir", "src/models/option1/ddpg"))
     results_dir = Path(getattr(config.paths, "results_dir", "results/option1"))
     weights_dir.mkdir(parents=True, exist_ok=True)
     results_dir.mkdir(parents=True, exist_ok=True)
@@ -32,13 +32,11 @@ def _resolve_dirs(config: ProjectConfig) -> Tuple[Path, Path]:
 def _split_out_of_sample(
     bundle,
     processor: DataProcessor,
-    config: ProjectConfig
+    config: ProjectConfig,
 ):
     """Construye partición temporal out-of-sample para evaluación."""
     total_seq = bundle.lstm_sequences.shape[0]
-
-    test_ratio = config.general.test_ratio if hasattr(config.general, "test_ratio") else 0.1
-    cut = max(1, int(total_seq * (1.0 - test_ratio)))
+    cut = max(1, int(total_seq * (1.0 - config.general.test_ratio)))
 
     seq_test = bundle.lstm_sequences[cut:].copy()
 
@@ -64,9 +62,7 @@ def _split_out_of_sample(
     # Precios de liquidación (se usa completo)
     liq = processor.precios_liquidacion_df.copy() if processor.precios_liquidacion_df is not None else pd.DataFrame()
 
-    prec_test = processor.datos_precios_df.copy() if processor.datos_precios_df is not None else pd.DataFrame()
-
-    return seq_test, fut_test, nem_test, dem_test, liq, prec_test
+    return seq_test, fut_test, nem_test, dem_test, liq
 
 
 def compute_spot_benchmark_costs(
@@ -125,7 +121,7 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
     bundle = processor.get_agent_data("ELM")
 
     # Split test
-    seq_test, fut_test, nem_test, dem_test, liq_test, prec_test = _split_out_of_sample(bundle, processor, config)
+    seq_test, fut_test, nem_test, dem_test, liq_test = _split_out_of_sample(bundle, processor, config)
 
     # Entorno test
     env_test = ElectricityHedgingEnv(
@@ -134,7 +130,6 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
         nemotecnico_map_t1_t6=nem_test,
         demand_aligned=dem_test,
         precios_liquidacion=liq_test,
-        datos_precios=prec_test,
         initial_capital=bundle.dynamic_initial_capital,
         config=config,
     )

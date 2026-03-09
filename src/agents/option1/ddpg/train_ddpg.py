@@ -1,4 +1,4 @@
-"""Script principal de entrenamiento DDPG (Fase 5) con split temporal train/test."""
+"""Script principal de entrenamiento DDPG (Fase 5)."""
 
 from __future__ import annotations
 
@@ -17,41 +17,46 @@ from environment import ElectricityHedgingEnv
 
 
 def _resolve_training_hyperparams(config: ProjectConfig) -> Tuple[int, int]:
-    """Extrae total_episodes y log_every desde config."""
-    total_episodes = int(config.general.total_episodes)
-    log_every = int(config.general.log_every)
+    """Extrae total_episodes y log_every con fallback seguro."""
+    total_episodes = int(getattr(config.general, "total_episodes", 200))
+    log_every = int(getattr(config.general, "log_every", 10))
     return total_episodes, log_every
 
 
 def _resolve_output_dirs(config: ProjectConfig) -> Tuple[Path, Path]:
-    """Resuelve directorios para pesos y resultados desde config.paths."""
-    weights_dir = Path(config.paths.model_dir)
-    results_dir = Path(config.paths.results_dir)
+    """Resuelve directorios para pesos y resultados."""
+    # Pesos (ej. src/agents/option1/ddpg/)
+    if hasattr(config.paths, "model_dir"):
+        weights_dir = Path(config.paths.model_dir)
+    else:
+        weights_dir = Path("src/models/option1/ddpg")
+
+    # Resultados (ej. results/option1/)
+    if hasattr(config.paths, "results_dir"):
+        results_dir = Path(config.paths.results_dir)
+    else:
+        results_dir = Path("results/option1")
+
     weights_dir.mkdir(parents=True, exist_ok=True)
     results_dir.mkdir(parents=True, exist_ok=True)
     return weights_dir, results_dir
 
-
-def _split_train_bundle(bundle, processor: DataProcessor, config: ProjectConfig):
-    """Construye partición temporal de entrenamiento: (1 - test_ratio)."""
+def _split_train_bundle(bundle, processor, config):
+    """Construye partición temporal de entrenamiento (1 - test_ratio)."""
     test_ratio = float(config.general.test_ratio)
-    if not (0.0 < test_ratio < 1.0):
-        raise ValueError(f"config.general.test_ratio inválido: {test_ratio}. Debe estar entre (0,1).")
-
-    total_seq = int(bundle.lstm_sequences.shape[0])
-    cut = max(1, int(total_seq * (1.0 - test_ratio)))
+    total_seq = bundle.lstm_sequences.shape[0]
+    cut = max(1, int(total_seq * (1.0 - test_ratio)))  # train seq = [0:cut]
 
     seq_train = bundle.lstm_sequences[:cut].copy()
 
     full_timeline = bundle.nemotecnico_map_t1_t6.index
-    seq_len = int(config.lstm.sequence_length)
+    seq_len = config.lstm.sequence_length
 
+    # timeline compatible con environment (current_step = seq_len)
+    # para train: desde (seq_len-1) hasta (cut + seq_len - 2) inclusive
     t_start = seq_len - 1
-    t_end_exclusive = min(len(full_timeline), cut + seq_len - 1)
-    train_timeline = full_timeline[t_start:t_end_exclusive]
-
-    if len(train_timeline) == 0:
-        raise ValueError("train_timeline quedó vacío. Revisa sequence_length y tamaño del dataset.")
+    t_end = min(len(full_timeline), cut + seq_len - 1)
+    train_timeline = full_timeline[t_start:t_end]
 
     nem_train = bundle.nemotecnico_map_t1_t6.loc[train_timeline].copy()
     dem_train = bundle.demand_aligned.loc[train_timeline].copy()
@@ -60,19 +65,21 @@ def _split_train_bundle(bundle, processor: DataProcessor, config: ProjectConfig)
     fut = fut[fut["Fecha"].isin(train_timeline)].copy()
     fut_train = fut.set_index(["Fecha", "Nemotecnico"]).sort_index()
 
-    liq_df = processor.precios_liquidacion_df.copy() if processor.precios_liquidacion_df is not None else pd.DataFrame()
+    liq = processor.precios_liquidacion_df.copy() if processor.precios_liquidacion_df is not None else pd.DataFrame()
 
-    prec_df = processor.datos_precios_df.copy() if processor.datos_precios_df is not None else pd.DataFrame()
-
-    return seq_train, fut_train, nem_train, dem_train, liq_df, prec_df
+    return seq_train, fut_train, nem_train, dem_train, liq
 
 
 def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
-    """Orquesta entrenamiento completo DDPG sobre partición train."""
+    """Orquesta entrenamiento completo DDPG."""
+
+    # ------------------------------------------------------------------
+    # 1) Inicialización de módulos
+    # ------------------------------------------------------------------
     processor = DataProcessor(config)
     bundle = processor.get_agent_data("ELM")
 
-    seq_train, fut_train, nem_train, dem_train, liq_train, prec_train = _split_train_bundle(bundle, processor, config)
+    seq_train, fut_train, nem_train, dem_train, liq_train = _split_train_bundle(bundle, processor, config)
 
     env = ElectricityHedgingEnv(
         sequences_lstm=seq_train,
@@ -80,7 +87,6 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         nemotecnico_map_t1_t6=nem_train,
         demand_aligned=dem_train,
         precios_liquidacion=liq_train,
-        datos_precios=prec_train,
         initial_capital=bundle.dynamic_initial_capital,
         config=config,
     )
@@ -88,41 +94,31 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     num_features = int(seq_train.shape[2])
     agent = DDPGAgent(
         num_features=num_features,
-        action_dim=int(config.contract.max_horizon_months),
+        action_dim=config.contract.max_horizon_months,  # 6
         config=config,
     )
 
     total_episodes, log_every = _resolve_training_hyperparams(config)
     weights_dir, results_dir = _resolve_output_dirs(config)
 
-    # Métricas
+    # ------------------------------------------------------------------
+    # 2) Métricas de entrenamiento
+    # ------------------------------------------------------------------
     episode_rewards: List[float] = []
     episode_pnls: List[float] = []
     margin_calls_count: List[int] = []
     overhedging_penalties: List[float] = []
     episode_times_sec: List[float] = []
-    underhedge_opportunity_penalties: List[float] = []  # nueva métrica para oportunidades de underhedge evitadas
 
-    # Nuevas métricas para score combinado
-    episode_scores: List[float] = []
-    reward_norm_hist: List[float] = []
-    pnl_norm_hist: List[float] = []
+    best_reward = -np.inf
 
-    best_score = -np.inf
-
-    # EMA para normalización robusta de escalas
-    ema_abs_reward = 1.0
-    ema_abs_pnl = 1.0
-    alpha = 0.05  # suavizado EMA
-
-    # Pesos del score combinado
-    w_reward = float(config.general.best_model_weight_reward)
-    w_pnl = float(config.general.best_model_weight_pnl)
-
+    # ------------------------------------------------------------------
+    # 3) Bucle de entrenamiento por episodios
+    # ------------------------------------------------------------------
     for episode in range(1, total_episodes + 1):
         t0 = time.perf_counter()
 
-        state, _ = env.reset()
+        state, info = env.reset()
         terminated = False
         truncated = False
 
@@ -130,77 +126,77 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         ep_pnl = 0.0
         ep_margin_calls = 0
         ep_overhedge = 0.0
-        ep_underhedge_opportunity = 0.0
-        while not (terminated or truncated):
-            action = agent.select_action(state, add_noise=True)
 
-            next_state, reward, terminated, truncated, info = env.step(action)
+        # ------------------------------------------------------------------
+        # 4) Inner loop: interacción + aprendizaje
+        # ------------------------------------------------------------------
+        while not (terminated or truncated):
+            # state shape esperado: (sequence_length, num_features)
+            action = agent.select_action(state, add_noise=True)  # (6,)
+
+            next_state, reward, terminated, truncated, step_info = env.step(action)
             done = bool(terminated or truncated)
 
+            # Guardar transición
             agent.store_transition(state, action, float(reward), next_state, done)
+
+            # Entrenar (si hay suficientes muestras)
             _ = agent.train_step()
 
+            # Acumular métricas
             ep_reward += float(reward)
-            ep_pnl += float(info.get("pnl_delta_mtm", 0.0)) + float(info.get("pnl_settlement", 0.0))
-            ep_overhedge += float(info.get("sobre_cobertura_kwh", 0.0))
-            ep_underhedge_opportunity += float(info.get("underhedge_penalty", 0.0))
+            ep_pnl += float(step_info.get("pnl_delta_mtm", 0.0)) + float(step_info.get("pnl_settlement", 0.0))
+            ep_overhedge += float(step_info.get("sobre_cobertura_kwh", 0.0))
 
-            if float(info.get("margin_calls_cost", 0.0)) > 0.0:
+            # Conteo aproximado de margin calls (si hubo costo > 0 en el step)
+            if float(step_info.get("margin_calls_cost", 0.0)) > 0.0:
                 ep_margin_calls += 1
 
             state = next_state
 
+        # ------------------------------------------------------------------
+        # 5) Decaimiento del ruido
+        # ------------------------------------------------------------------
         agent.decay_noise()
+
+        # Tiempo episodio
         ep_time = time.perf_counter() - t0
 
-        # actualizar EMAs
-        ema_abs_reward = (1 - alpha) * ema_abs_reward + alpha * max(1.0, abs(ep_reward))
-        ema_abs_pnl = (1 - alpha) * ema_abs_pnl + alpha * max(1.0, abs(ep_pnl))
-
-        reward_norm = ep_reward / ema_abs_reward
-        pnl_norm = ep_pnl / ema_abs_pnl
-        episode_score = (w_reward * reward_norm) + (w_pnl * pnl_norm)
-
-        # guardar métricas
+        # Guardar métricas
         episode_rewards.append(ep_reward)
         episode_pnls.append(ep_pnl)
         margin_calls_count.append(ep_margin_calls)
         overhedging_penalties.append(ep_overhedge)
-        underhedge_opportunity_penalties.append(ep_underhedge_opportunity)
         episode_times_sec.append(ep_time)
 
-        episode_scores.append(float(episode_score))
-        reward_norm_hist.append(float(reward_norm))
-        pnl_norm_hist.append(float(pnl_norm))
-
-        # Guardar mejor modelo por score combinado
-        if episode_score > best_score:
-            best_score = episode_score
+        # ------------------------------------------------------------------
+        # 6) Guardado best model
+        # ------------------------------------------------------------------
+        if ep_reward > best_reward:
+            best_reward = ep_reward
             torch.save(agent.actor.state_dict(), weights_dir / "best_actor_ddpg.pt")
             torch.save(agent.critic.state_dict(), weights_dir / "best_critic_ddpg.pt")
 
+        # Logging en consola
         if episode % log_every == 0 or episode == 1 or episode == total_episodes:
             print(
                 f"[Episodio {episode:4d}/{total_episodes}] "
                 f"Reward={ep_reward:,.2f} | "
                 f"PnL={ep_pnl:,.2f} | "
-                f"Score={episode_score:.4f} | "
                 f"NoiseStd={agent.noise_std:.4f} | "
                 f"Tiempo={ep_time:.2f}s"
             )
 
-    # Export históricos
+    # ------------------------------------------------------------------
+    # Guardado de histórico de entrenamiento
+    # ------------------------------------------------------------------
     history_df = pd.DataFrame(
         {
             "episode": np.arange(1, total_episodes + 1, dtype=int),
             "episode_reward": episode_rewards,
             "episode_pnl": episode_pnls,
-            "reward_norm": reward_norm_hist,
-            "pnl_norm": pnl_norm_hist,
-            "episode_score": episode_scores,
             "margin_calls_count": margin_calls_count,
             "overhedging_penalty_kwh_sum": overhedging_penalties,
-            "underhedge_opportunity_penalty_sum": underhedge_opportunity_penalties,
             "episode_time_sec": episode_times_sec,
         }
     )
@@ -209,13 +205,11 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     return {
         "episode_rewards": episode_rewards,
         "episode_pnls": episode_pnls,
-        "episode_scores": episode_scores,
         "margin_calls_count": margin_calls_count,
         "overhedging_penalties": overhedging_penalties,
-        "underhedge_opportunity_penalties": underhedge_opportunity_penalties,
         "episode_times_sec": episode_times_sec,
     }
 
 
-# if __name__ == "__main__":
-#     train_ddpg_agent(CONFIG)
+#if __name__ == "__main__":
+#    train_ddpg_agent(CONFIG)
