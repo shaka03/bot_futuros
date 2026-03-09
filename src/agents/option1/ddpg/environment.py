@@ -7,6 +7,7 @@ Incluye:
 - Mark-to-Market diario para contratos vigentes.
 - Gestión de garantías: margin call, retiros y bancarrota (truncated).
 - Recompensa media-varianza con penalizaciones por sobre-cobertura y compra duplicada.
+- Rebalanceo controlado para permitir vender sin churn excesivo.
 """
 
 from __future__ import annotations
@@ -98,8 +99,15 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         # Estado extendido de cobertura (0/1) por slot 1..6
         self.coverage_state: np.ndarray = np.zeros(self.config.contract.max_horizon_months, dtype=np.float32)
 
-        # Penalización por compra duplicada (hiperparámetro simple)
+        # Penalizaciones
         self.duplicate_buy_penalty_value: float = self.config.reward.lambda_penalizacion
+        self.turnover_lambda: float = float(getattr(self.config.reward, "lambda_turnover", 0.0))
+
+        # Parámetros de rebalanceo (fallback si no están en config)
+        self.max_trade_fraction_per_step: float = float(
+            getattr(self.config.contract, "max_trade_fraction_per_step", 0.20)
+        )
+        self.min_trade_kwh: float = float(getattr(self.config.contract, "min_trade_kwh", 1000.0))
 
         # Índice rápido de liquidación: FechaVencimiento -> Precio_COP/kWh_Dia
         self.liq_price_by_date: Dict[pd.Timestamp, float] = self._build_settlement_lookup(self.precios_liquidacion)
@@ -131,6 +139,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "capital_actual": self.current_capital,
             "sobre_cobertura_kwh": 0.0,
             "positions_open": 0,
+            "covered_kwh_total": 0.0,
         }
         return obs, info
 
@@ -152,8 +161,12 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         withdrawals = 0.0
         settlement_pnl = 0.0
 
+        buys_count = 0
+        sells_count = 0
+        turnover_kwh = 0.0
+
         # --------------------------------------------------------------
-        # 1) Procesamiento de acciones (compras / ventas)
+        # 1) Procesamiento de acciones (rebalanceo controlado por slot)
         # --------------------------------------------------------------
         for month_slot, act in enumerate(discrete_actions, start=1):
             nem = self._get_nemotecnico_for_slot(current_date, month_slot)
@@ -175,14 +188,64 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             demand_col = f"Demanda_Comprador_Dia_{month_slot:02d}Meses_Adelante"
             expected_demand_kwh = self._get_expected_demand(current_date, demand_col)
 
-            # BUY
+            # límite de ajuste por step para evitar churn
+            max_trade_kwh = self.max_trade_fraction_per_step * max(expected_demand_kwh, 1.0)
+
+            # cobertura actual en ese slot y nem (0 o cobertura del inventario existente)
+            current_cov_kwh_slot = 0.0
+            if nem in self.inventory:
+                pos_exist = self.inventory[nem]
+                current_cov_kwh_slot = float(pos_exist.quantity_contracts * pos_exist.contract_size_kwh)
+
+            # BUY / SELL deseado en kWh (acto discreto)
+            desired_delta_kwh = 0.0
             if act == 1:
-                # Si ya está cubierto con ese nemotécnico, ignorar y penalizar
+                desired_delta_kwh = max(0.0, expected_demand_kwh - current_cov_kwh_slot)  # acercarse a cobertura objetivo
+            elif act == -1:
+                desired_delta_kwh = -current_cov_kwh_slot  # cerrar parcial/total
+
+            # clip por control de turnover
+            delta_kwh = float(np.clip(desired_delta_kwh, -max_trade_kwh, max_trade_kwh))
+            if abs(delta_kwh) < self.min_trade_kwh:
+                continue
+
+            # ---------------- BUY ----------------
+            if delta_kwh > 0:
                 if nem in self.inventory:
-                    duplicate_buy_penalty += self.duplicate_buy_penalty_value
+                    # si ya existe inventario del mismo nem, permitimos ampliar (sin duplicar objeto)
+                    pos = self.inventory[nem]
+                    add_qty = int(delta_kwh // self.config.contract.tamano_kwh)
+                    if add_qty <= 0:
+                        continue
+
+                    margin_pct = self._get_margin_pct_for_slot(month_slot)
+                    add_initial_margin = price_today * self.config.contract.tamano_kwh * add_qty * margin_pct
+                    add_maintenance = add_initial_margin * self.config.finance.umbral_margin_call
+
+                    notional = price_today * self.config.contract.tamano_kwh * add_qty
+                    commission = notional * self.config.finance.comision_transaccion
+
+                    required_cash = add_initial_margin + commission
+                    if self.current_capital >= required_cash:
+                        self.current_capital -= required_cash
+                        transaction_costs += commission
+
+                        # ampliar posición existente
+                        pos.quantity_contracts += add_qty
+                        pos.prev_price = price_today
+                        pos.initial_margin_required += add_initial_margin
+                        pos.maintenance_margin_required += add_maintenance
+                        pos.margin_balance += add_initial_margin
+
+                        self.coverage_state[month_slot - 1] = 1.0
+                        buys_count += 1
+                        turnover_kwh += add_qty * self.config.contract.tamano_kwh
+                    else:
+                        duplicate_buy_penalty += self.duplicate_buy_penalty_value
                     continue
 
-                qty_contracts = int(math.ceil(expected_demand_kwh / self.config.contract.tamano_kwh))
+                # apertura nueva
+                qty_contracts = int(delta_kwh // self.config.contract.tamano_kwh)
                 qty_contracts = max(0, min(qty_contracts, self.config.contract.max_ordenes))
                 if qty_contracts == 0:
                     continue
@@ -213,16 +276,32 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                         margin_balance=initial_margin,
                     )
                     self.coverage_state[month_slot - 1] = 1.0
+                    buys_count += 1
+                    turnover_kwh += qty_contracts * self.config.contract.tamano_kwh
 
-            # SELL (cierre voluntario)
-            elif act == -1:
+            # ---------------- SELL (desarme controlado) ----------------
+            elif delta_kwh < 0:
                 if nem in self.inventory:
-                    close_pnl, released_margin, close_commission = self._close_position(nem, price_today)
+                    pos = self.inventory[nem]
+                    close_qty = int(abs(delta_kwh) // self.config.contract.tamano_kwh)
+                    close_qty = min(close_qty, pos.quantity_contracts)
+                    if close_qty <= 0:
+                        continue
+
+                    close_pnl, released_margin, close_commission = self._close_position_partial(
+                        nem=nem,
+                        close_price=price_today,
+                        quantity_to_close=close_qty,
+                    )
                     pnl_delta += close_pnl
                     self.current_capital += released_margin
                     transaction_costs += close_commission
-                    self.coverage_state[month_slot - 1] = 0.0
-                # Si no existe, se ignora (no short naked)
+                    sells_count += 1
+                    turnover_kwh += close_qty * self.config.contract.tamano_kwh
+
+                    if nem not in self.inventory:
+                        self.coverage_state[month_slot - 1] = 0.0
+                # Si no existe, ignorar (no short naked)
 
         # --------------------------------------------------------------
         # 2) Ciclo de vida del contrato (obligatorio en cada t)
@@ -285,10 +364,11 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     pnl_delta += excess
 
         # --------------------------------------------------------------
-        # 3) Penalización sobre-cobertura
+        # 3) Penalización sobre-cobertura + turnover
         # --------------------------------------------------------------
         overhedge_kwh = self._compute_overhedge_kwh(current_date)
         overhedge_penalty = self.config.reward.lambda_penalizacion * overhedge_kwh
+        turnover_penalty = self.turnover_lambda * turnover_kwh
 
         # --------------------------------------------------------------
         # 4) Recompensa media-varianza
@@ -301,6 +381,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             pnl_step_total
             - risk_penalty
             - overhedge_penalty
+            - turnover_penalty
             - transaction_costs
             - duplicate_buy_penalty
         )
@@ -317,16 +398,23 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             self.current_step = len(self.timeline) - 1
 
         obs = self._build_observation(self.current_step)
+        covered_kwh_total = float(sum(p.quantity_contracts * p.contract_size_kwh for p in self.inventory.values()))
+
         info = {
             "capital_actual": float(self.current_capital),
             "sobre_cobertura_kwh": float(overhedge_kwh),
             "positions_open": len(self.inventory),
+            "covered_kwh_total": covered_kwh_total,
             "pnl_delta_mtm": float(pnl_delta),
             "pnl_settlement": float(settlement_pnl),
             "transaction_costs": float(transaction_costs),
             "margin_calls_cost": float(margin_calls_cost),
             "withdrawals": float(withdrawals),
             "duplicate_buy_penalty": float(duplicate_buy_penalty),
+            "turnover_kwh": float(turnover_kwh),
+            "turnover_penalty": float(turnover_penalty),
+            "buys_count": int(buys_count),
+            "sells_count": int(sells_count),
             "margin_balance_total": float(self.margin_account_balance_total),
         }
 
@@ -403,19 +491,46 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         return float(self.config.finance.margenes_vencimiento[(0, 4)])
 
     def _close_position(self, nem: str, close_price: float) -> Tuple[float, float, float]:
-        """Cierre voluntario de posición (no vencimiento).
-
-        Retorna:
-        - pnl_cierre (ajuste desde prev_price)
-        - margen_liberado
-        - comisión_cierre
-        """
+        """Cierre voluntario total de posición (compatibilidad)."""
         pos = self.inventory[nem]
         pnl_close = (close_price - pos.prev_price) * pos.contract_size_kwh * pos.quantity_contracts
         close_notional = close_price * pos.contract_size_kwh * pos.quantity_contracts
         close_commission = close_notional * self.config.finance.comision_transaccion
         released_margin = pos.margin_balance
         del self.inventory[nem]
+        return float(pnl_close), float(released_margin), float(close_commission)
+
+    def _close_position_partial(self, nem: str, close_price: float, quantity_to_close: int) -> Tuple[float, float, float]:
+        """Cierre parcial FIFO simplificado de una posición por nem.
+
+        Retorna:
+        - pnl_cierre (desde prev_price para qty cerrada)
+        - margen_liberado proporcional
+        - comisión_cierre
+        """
+        pos = self.inventory[nem]
+        qty = int(max(0, min(quantity_to_close, pos.quantity_contracts)))
+        if qty == 0:
+            return 0.0, 0.0, 0.0
+
+        ratio = qty / pos.quantity_contracts
+
+        pnl_close = (close_price - pos.prev_price) * pos.contract_size_kwh * qty
+        close_notional = close_price * pos.contract_size_kwh * qty
+        close_commission = close_notional * self.config.finance.comision_transaccion
+
+        released_margin = pos.margin_balance * ratio
+        released_initial_margin = pos.initial_margin_required * ratio
+        released_maintenance_margin = pos.maintenance_margin_required * ratio
+
+        pos.quantity_contracts -= qty
+        pos.margin_balance -= released_margin
+        pos.initial_margin_required -= released_initial_margin
+        pos.maintenance_margin_required -= released_maintenance_margin
+
+        if pos.quantity_contracts <= 0:
+            del self.inventory[nem]
+
         return float(pnl_close), float(released_margin), float(close_commission)
 
     def _compute_overhedge_kwh(self, date: pd.Timestamp) -> float:

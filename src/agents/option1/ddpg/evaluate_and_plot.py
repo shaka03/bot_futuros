@@ -123,7 +123,7 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
     bundle = processor.get_agent_data("ELM")
 
     # Split test
-    seq_test, fut_test, nem_test, dem_test, liq_test = _split_out_of_sample(bundle, processor, test_ratio=0.2)
+    seq_test, fut_test, nem_test, dem_test, liq_test = _split_out_of_sample(bundle, processor, config)
 
     # Entorno test
     env_test = ElectricityHedgingEnv(

@@ -112,8 +112,8 @@ class FinanceConfig:
 class RewardConfig:
     """Hiperparámetros de la función de recompensa."""
 
-    lambda_riesgo: float = 0.1
-    lambda_penalizacion: float = 1.0
+    lambda_riesgo: float = 1e-12
+    lambda_penalizacion: float = 1e-5
     pnl_window_size: int = 30
 
 
@@ -127,6 +127,7 @@ class LSTMConfig:
     sequence_length: int = 14
     hidden_size: int = 128
     num_layers: int = 2
+    dropout: float = 0.1
 
 
 # =========================
@@ -137,28 +138,70 @@ class DDPGConfig:
     """Hiperparámetros de entrenamiento DDPG."""
 
     actor_lr: float = 1e-4
-    critic_lr: float = 1e-3
+    critic_lr: float = 3e-4
     gamma: float = 0.99
     tau: float = 0.005
-    batch_size: int = 64
-    buffer_capacity: int = 100_000
-    exploration_noise_std: float = 0.1
+    batch_size: int = 256
+    buffer_capacity: int = 300_000
+    exploration_noise_std: float = 0.2
+    exploration_noise_min_std: float = 0.03
+    exploration_noise_decay: float = 0.997
+
+@dataclass
+class DDPGConfig:
+    actor_lr: float = 1e-4
+    critic_lr: float = 3e-4
+    gamma: float = 0.99
+    tau: float = 0.005
+    batch_size: int = 256
+    buffer_capacity: int = 300_000
+    exploration_noise_std: float = 0.20
+    exploration_noise_min: float = 0.03
+    exploration_noise_decay: float = 0.997
 
 
 # =========================
-# 7) General
+# 7) Recompensas
+# =========================
+@dataclass
+class RewardConfig:
+    lambda_riesgo: float = 1e-12
+    lambda_penalizacion: float = 1e-5
+    lambda_turnover: float = 1e-6
+    pnl_window_size: int = 30
+
+# =========================
+# 8) Contratos
+# =========================
+@dataclass
+class ContractConfig:
+    contract_type: str = "ELM"
+    max_horizon_months: int = 6
+    tamano_kwh: int = 1000
+    max_ordenes: int = 300
+
+    # Control de rebalanceo por step (evita churn)
+    max_trade_fraction_per_step: float = 0.20
+    min_trade_kwh: float = 1000.0
+
+
+# =========================
+# 9) General
 # =========================
 @dataclass(frozen=True)
 class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
-
     seed: int = 42
-    total_episodes: int = 1_000
+    total_episodes: int = 400
     log_every: int = 10
-    test_ratio: float = 0.1
+    test_ratio: float = 0.10 # 90% entrenamiento, 10% prueba
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"
+
+    # Pesos para el score de actualización de mejores modelos
+    best_model_weight_reward: float = 0.5
+    best_model_weight_pnl: float = 0.5
 
 
 @dataclass(frozen=True)
@@ -172,6 +215,9 @@ class ProjectConfig:
     lstm: LSTMConfig = field(default_factory=LSTMConfig)
     ddpg: DDPGConfig = field(default_factory=DDPGConfig)
     general: GeneralConfig = field(default_factory=GeneralConfig)
+    contract: ContractConfig = field(default_factory=ContractConfig)
+    reward: RewardConfig = field(default_factory=RewardConfig)
+    ddpg: DDPGConfig = field(default_factory=DDPGConfig)
 
 
 # Instancia única de configuración para importar en otros módulos.
