@@ -86,7 +86,7 @@ class ContractSpecConfig:
 class FinanceConfig:
     """Parámetros de costos, margen y capital inicial dinámico."""
 
-    comision_transaccion: float = 0.03
+    comision_transaccion: float = 0.001 # 0.1% por transacción
     umbral_margin_call: float = 0.75
 
     # Rangos de vencimiento en meses -> porcentaje de margen
@@ -103,6 +103,7 @@ class FinanceConfig:
 
     # Hiperparámetro para cálculo de capital inicial dinámico
     factor_holgura: float = 3.0
+    initial_capital_min: float = 10_000_000_000  # 10 mil millones COP
 
 
 # =========================
@@ -112,10 +113,29 @@ class FinanceConfig:
 class RewardConfig:
     """Hiperparámetros de la función de recompensa."""
 
-    lambda_riesgo: float = 1e-12
-    lambda_penalizacion: float = 1e-5
+    lambda_riesgo: float = 1e-8
+    lambda_penalizacion: float = 1e-8
+    lambda_penalizacion_duplicados: float = 1e-8
+    lambda_oportunidad: float = 1e-2
     pnl_window_size: int = 30
 
+    # Normalización
+    w_pnl: float = 0.2
+    w_risk: float = 0.1
+    w_overhedge: float = 0.05
+    w_transaction: float = 0.05
+    w_duplicate: float = 0.0
+    w_opportunity: float = 0.1
+    w_opportunity_expiry: float = 0.8
+    w_coverage: float = 1.0
+
+    # Escalas de normalización (COP / kWh)
+    scale_pnl: float = 1e9
+    scale_money: float = 1e7
+    scale_kwh: float = 1e7
+    scale_opportunity: float = 1e6
+    scale_risk: float = 1e5
+    
 
 # =========================
 # 5) Redes LSTM
@@ -136,72 +156,30 @@ class LSTMConfig:
 @dataclass(frozen=True)
 class DDPGConfig:
     """Hiperparámetros de entrenamiento DDPG."""
-
-    actor_lr: float = 1e-4
-    critic_lr: float = 3e-4
+    actor_lr: float = 5e-5
+    critic_lr: float = 2e-4
     gamma: float = 0.99
-    tau: float = 0.005
+    tau: float = 0.003
     batch_size: int = 256
-    buffer_capacity: int = 300_000
-    exploration_noise_std: float = 0.2
+    buffer_capacity: int = 400_000
+    exploration_noise_std: float = 0.25
     exploration_noise_min_std: float = 0.03
-    exploration_noise_decay: float = 0.997
-
-@dataclass
-class DDPGConfig:
-    actor_lr: float = 1e-4
-    critic_lr: float = 3e-4
-    gamma: float = 0.99
-    tau: float = 0.005
-    batch_size: int = 256
-    buffer_capacity: int = 300_000
-    exploration_noise_std: float = 0.20
-    exploration_noise_min: float = 0.03
-    exploration_noise_decay: float = 0.997
+    exploration_noise_decay: float = 0.999
 
 
 # =========================
-# 7) Recompensas
-# =========================
-@dataclass
-class RewardConfig:
-    lambda_riesgo: float = 1e-12
-    lambda_penalizacion: float = 1e-5
-    lambda_turnover: float = 1e-6
-    pnl_window_size: int = 30
-
-# =========================
-# 8) Contratos
-# =========================
-@dataclass
-class ContractConfig:
-    contract_type: str = "ELM"
-    max_horizon_months: int = 6
-    tamano_kwh: int = 1000
-    max_ordenes: int = 300
-
-    # Control de rebalanceo por step (evita churn)
-    max_trade_fraction_per_step: float = 0.20
-    min_trade_kwh: float = 1000.0
-
-
-# =========================
-# 9) General
+# 7) General
 # =========================
 @dataclass(frozen=True)
 class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
+
     seed: int = 42
-    total_episodes: int = 400
-    log_every: int = 10
-    test_ratio: float = 0.10 # 90% entrenamiento, 10% prueba
+    total_episodes: int = 300
+    test_ratio: float = 0.1
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"
-
-    # Pesos para el score de actualización de mejores modelos
-    best_model_weight_reward: float = 0.5
-    best_model_weight_pnl: float = 0.5
 
 
 @dataclass(frozen=True)
@@ -215,9 +193,6 @@ class ProjectConfig:
     lstm: LSTMConfig = field(default_factory=LSTMConfig)
     ddpg: DDPGConfig = field(default_factory=DDPGConfig)
     general: GeneralConfig = field(default_factory=GeneralConfig)
-    contract: ContractConfig = field(default_factory=ContractConfig)
-    reward: RewardConfig = field(default_factory=RewardConfig)
-    ddpg: DDPGConfig = field(default_factory=DDPGConfig)
 
 
 # Instancia única de configuración para importar en otros módulos.

@@ -38,7 +38,7 @@ class ActorLSTM(nn.Module):
         action_dim: int,
         hidden_size: int,
         num_layers: int,
-        dropout: float,
+        dropout: float
     ) -> None:
         super().__init__()
 
@@ -46,8 +46,8 @@ class ActorLSTM(nn.Module):
             input_size=num_features,
             hidden_size=hidden_size,
             num_layers=num_layers,
+            dropout=dropout,
             batch_first=True,  # (B, T, F) -> (B, T, H)
-            dropout=dropout if num_layers > 1 else 0.0
         )
 
         self.fc1 = nn.Linear(hidden_size, hidden_size)
@@ -89,7 +89,7 @@ class CriticLSTM(nn.Module):
         action_dim: int,
         hidden_size: int,
         num_layers: int,
-        dropout: float,
+        dropout: float
     ) -> None:
         super().__init__()
 
@@ -97,7 +97,7 @@ class CriticLSTM(nn.Module):
             input_size=num_features,
             hidden_size=hidden_size,
             num_layers=num_layers,
-            dropout=dropout if num_layers > 1 else 0.0,
+            dropout=dropout,
             batch_first=True,
         )
 
@@ -210,7 +210,6 @@ class DDPGAgent:
         self.config = config
         self.action_dim = action_dim
 
-        # Configuración de dispositivo (GPU/CPU/MPS)
         if device is not None:
             self.device = torch.device(device)
         else:
@@ -226,12 +225,12 @@ class DDPGAgent:
         dropout = self.config.lstm.dropout
 
         # Redes principales
-        self.actor = ActorLSTM(num_features, action_dim, hidden_size, num_layers, dropout=dropout).to(self.device)
-        self.critic = CriticLSTM(num_features, action_dim, hidden_size, num_layers, dropout=dropout).to(self.device)
+        self.actor = ActorLSTM(num_features, action_dim, hidden_size, num_layers, dropout).to(self.device)
+        self.critic = CriticLSTM(num_features, action_dim, hidden_size, num_layers, dropout).to(self.device)
 
         # Redes target
-        self.actor_target = ActorLSTM(num_features, action_dim, hidden_size, num_layers, dropout=dropout).to(self.device)
-        self.critic_target = CriticLSTM(num_features, action_dim, hidden_size, num_layers, dropout=dropout).to(self.device)
+        self.actor_target = ActorLSTM(num_features, action_dim, hidden_size, num_layers, dropout).to(self.device)
+        self.critic_target = CriticLSTM(num_features, action_dim, hidden_size, num_layers, dropout).to(self.device)
 
         # Sincronización inicial exacta
         self.actor_target.load_state_dict(self.actor.state_dict())
@@ -257,8 +256,8 @@ class DDPGAgent:
         # Ruido gaussiano con decaimiento
         self.noise_std_init = float(self.config.ddpg.exploration_noise_std)
         self.noise_std = float(self.config.ddpg.exploration_noise_std)
-        self.noise_std_min = float(self.config.ddpg.exploration_noise_min_std) if hasattr(self.config.ddpg, "exploration_noise_min_std") else 0.05
-        self.noise_decay = float(self.config.ddpg.exploration_noise_decay) if hasattr(self.config.ddpg, "exploration_noise_decay") else 0.995  # proporcional a episodios
+        self.noise_std_min = float(self.config.ddpg.exploration_noise_min_std)
+        self.noise_decay = float(self.config.ddpg.exploration_noise_decay)
 
         # Buffer
         self.replay_buffer = SequenceReplayBuffer(
