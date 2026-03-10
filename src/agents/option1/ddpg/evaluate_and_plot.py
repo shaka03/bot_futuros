@@ -206,6 +206,7 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
                 "reward": float(reward),
                 "pnl_step": pnl_step,
                 "pnl_acumulado": pnl_cum,
+                "margen_inicial": float(info.get("margin_balance_total", 0.0)) + float(info.get("capital_actual", 0.0)),
                 "capital_actual": float(info.get("capital_actual", np.nan)),
                 "margin_balance_total": float(info.get("margin_balance_total", np.nan)),
                 "sobre_cobertura_kwh": float(info.get("sobre_cobertura_kwh", 0.0)),

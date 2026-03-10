@@ -129,6 +129,15 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         ep_pnl = 0.0
         ep_margin_calls = 0
         ep_overhedge = 0.0
+        ep_coverage_penalty = 0.0
+        ep_pnl_norm = 0.0
+        ep_risk_norm = 0.0
+        ep_overhedge_norm = 0.0
+        ep_transaction_norm = 0.0
+        ep_duplicate_norm = 0.0
+        ep_opportunity_norm = 0.0
+        ep_opportunity_expiry_norm = 0.0
+        conteo = 0
 
         # ------------------------------------------------------------------
         # 4) Inner loop: interacción + aprendizaje
@@ -151,11 +160,22 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
             ep_pnl += float(step_info.get("pnl_delta_mtm", 0.0)) + float(step_info.get("pnl_settlement", 0.0))
             ep_overhedge += float(step_info.get("sobre_cobertura_kwh", 0.0))
 
+            # nuevos acumulados para análisis detallado
+            ep_coverage_penalty += float(step_info.get("coverage_penalty", 0.0))
+            ep_pnl_norm += float(step_info.get("reward_pnl_norm", 0.0))
+            ep_risk_norm += float(step_info.get("reward_risk_norm", 0.0))
+            ep_overhedge_norm += float(step_info.get("reward_overhedge_norm", 0.0))
+            ep_transaction_norm += float(step_info.get("reward_tx_norm", 0.0))
+            ep_duplicate_norm += float(step_info.get("reward_duplicate_norm", 0.0))
+            ep_opportunity_norm += float(step_info.get("reward_opportunity_norm", 0.0))
+            ep_opportunity_expiry_norm += float(step_info.get("reward_opportunity_expiry_norm", 0.0))
+
             # Conteo aproximado de margin calls (si hubo costo > 0 en el step)
             if float(step_info.get("margin_calls_cost", 0.0)) > 0.0:
                 ep_margin_calls += 1
 
             state = next_state
+            conteo += 1
 
         # ------------------------------------------------------------------
         # 5) Decaimiento del ruido
@@ -191,13 +211,18 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
                 f"Tiempo={ep_time:.2f}s | "
                 f"Cap={step_info.get('capital_actual', 0):,.0f} | "
                 f"Margin={step_info.get('margin_balance_total', 0):,.0f} | "
-                f"OppCost={step_info.get('opportunity_cost', 0):,.2f} | "
-                f"Overhedge={step_info.get('sobre_cobertura_kwh', 0):,.0f} | "
+                f"PnLNorm={ep_pnl_norm / conteo:,.2f} | "
+                f"RiskNorm={ep_risk_norm / conteo:,.2f} | "
+                f"OverhedgeNorm={ep_overhedge_norm / conteo:,.2f} | "
+                f"TransactionNorm={ep_transaction_norm / conteo:,.2f} | "
+                f"DuplicateNorm={ep_duplicate_norm / conteo:,.2f} | "
+                f"OpportunityNorm={ep_opportunity_norm / conteo:,.2f} | "
+                f"OpportunityExpiryNorm={ep_opportunity_expiry_norm / conteo:,.2f} | "
+                f"CoveragePenalty={ep_coverage_penalty / conteo:,.2f} | "
                 f"Truncated={truncated} | "
                 f"Terminated={terminated} | "
                 f"EndDate={end_date}"
             )
-            print(step_info)
 
     # ------------------------------------------------------------------
     # Guardado de histórico de entrenamiento

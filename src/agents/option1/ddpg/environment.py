@@ -289,7 +289,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
                     # Limpieza
                     del self.inventory[nem]
-                    self.coverage_state[pos.month_slot - 1] = 0.0
+                    #self.coverage_state[pos.month_slot - 1] = 0.0
                     continue
 
                 # 2.2 MtM diario para contrato vigente
@@ -321,6 +321,9 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     self.current_capital += excess
                     withdrawals += excess
                     #pnl_delta += excess
+        
+        # Re-sincroniza coverage_state al final del ciclo de vida
+        self._roll_positions_slots(current_date)
 
         # --------------------------------------------------------------
         # 3) Penalización sobre-cobertura y sub-cobertura
@@ -379,15 +382,16 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         risk_penalty = self.config.reward.lambda_riesgo * (downside ** 2) / max(self.config.reward.scale_money, 1.0)
 
         money_scale = max(float(self.config.reward.scale_money), 1.0)
+        pnl_scale = max(float(self.config.reward.scale_pnl), 1.0)
         kwh_scale = max(float(self.config.reward.scale_kwh), 1.0)
         opp_scale = max(float(self.config.reward.scale_opportunity), 1.0)
 
-        pnl_norm = pnl_step_total / money_scale
+        pnl_norm = pnl_step_total / pnl_scale
         risk_norm = risk_penalty / money_scale
         overhedge_norm = overhedge_kwh / kwh_scale
         transaction_norm = transaction_costs / money_scale
         duplicate_norm = duplicate_buy_penalty / money_scale
-        opportunity_norm = opportunity_cost / opp_scale
+        opportunity_norm = opportunity_cost / pnl_scale
         opportunity_expiry_norm = opportunity_cost_expiry / opp_scale
 
         coverage_penalties: List[float] = []

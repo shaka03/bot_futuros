@@ -130,7 +130,8 @@ class RewardConfig:
     w_coverage: float = 1.0
 
     # Escalas de normalización (COP / kWh)
-    scale_money: float = 1e8
+    scale_pnl: float = 1e9
+    scale_money: float = 1e7
     scale_kwh: float = 1e7
     scale_opportunity: float = 1e6
     scale_risk: float = 1e5
@@ -174,7 +175,7 @@ class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
     seed: int = 42
-    total_episodes: int = 100
+    total_episodes: int = 300
     test_ratio: float = 0.1
 
     # Inicio de iteraciones de negocio
