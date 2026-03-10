@@ -53,6 +53,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         nemotecnico_map_t1_t6: pd.DataFrame,       # index Fecha, cols Nemotecnico_t1..t6
         demand_aligned: pd.DataFrame,              # index Fecha
         precios_liquidacion: pd.DataFrame,         # cols: FechaVencimiento, Precio_COP/kWh_Dia
+        datos_precios: pd.DataFrame,
         initial_capital: float,
         config: ProjectConfig = CONFIG,
     ) -> None:
@@ -103,6 +104,8 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
         # Índice rápido de liquidación: FechaVencimiento -> Precio_COP/kWh_Dia
         self.liq_price_by_date: Dict[pd.Timestamp, float] = self._build_settlement_lookup(self.precios_liquidacion)
+
+        self.spot_price_lookup: Dict[pd.Timestamp, float] = self._build_spot_lookup(datos_precios)
 
         self._validate_inputs()
 
@@ -262,7 +265,8 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     if liq_price is None:
                         liq_price = pos.prev_price
 
-                    final_pnl = (liq_price - pos.entry_price) * pos.contract_size_kwh * pos.quantity_contracts
+                    #final_pnl = (liq_price - pos.entry_price) * pos.contract_size_kwh * pos.quantity_contracts
+                    final_pnl = (liq_price - pos.prev_price) * pos.contract_size_kwh * pos.quantity_contracts
                     settlement_pnl += final_pnl
                     self.current_capital += final_pnl
 
@@ -305,10 +309,10 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                         self.current_capital -= variation_margin
                         pos.margin_balance = pos.initial_margin_required
                         margin_calls_cost += variation_margin
-                        pnl_delta -= variation_margin
+                        #pnl_delta -= variation_margin
                     else:
                         truncated = True
-                        pnl_delta -= 1_000_000_000.0  # penalización severa bancarrota
+                        pnl_delta -= abs(variation_margin) * 2.0  # penalización severa bancarrota
                         break
 
                 if pos.margin_balance > pos.initial_margin_required:
@@ -316,7 +320,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     pos.margin_balance = pos.initial_margin_required
                     self.current_capital += excess
                     withdrawals += excess
-                    pnl_delta += excess
+                    #pnl_delta += excess
 
         # --------------------------------------------------------------
         # 3) Penalización sobre-cobertura y sub-cobertura
@@ -332,15 +336,16 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             coverage_by_slot_kwh[pos.month_slot] += pos.quantity_contracts * pos.contract_size_kwh
         
         # Spot del día (promedio simple de precios disponibles t1..t6)
-        spot_candidates: List[float] = []
-        for m in range(1, self.config.contract.max_horizon_months + 1):
-            nem_m = self._get_nemotecnico_for_slot(current_date, m)
-            if nem_m is None:
-                continue
-            p_m = self._get_price(current_date, nem_m)
-            if p_m is not None and np.isfinite(p_m):
-                spot_candidates.append(float(p_m))
-        spot_price_ref = float(np.mean(spot_candidates)) if spot_candidates else 0.0
+        #spot_candidates: List[float] = []
+        #for m in range(1, self.config.contract.max_horizon_months + 1):
+        #    nem_m = self._get_nemotecnico_for_slot(current_date, m)
+        #    if nem_m is None:
+        #        continue
+        #    p_m = self._get_price(current_date, nem_m)
+        #    if p_m is not None and np.isfinite(p_m):
+        #        spot_candidates.append(float(p_m))
+        #spot_price_ref = float(np.mean(spot_candidates)) if spot_candidates else 0.0
+        spot_price_ref = self._get_spot_price(current_date)
 
         # Costo de oportunidad por shortfall:
         # Castiga no cubrir cuando ex-post el spot estuvo por encima del futuro del slot
@@ -361,8 +366,9 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             if fut_price is None:
                 continue
 
-            spread = max(0.0, spot_price_ref - float(fut_price))
-            opportunity_cost += spread * shortfall_kwh
+            if shortfall_kwh > 0:
+                spread = max(0.0, spot_price_ref - float(fut_price))
+                opportunity_cost += spread * shortfall_kwh
 
         # --------------------------------------------------------------
         # 4) Recompensa media-varianza
@@ -374,17 +380,41 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
         money_scale = max(float(self.config.reward.scale_money), 1.0)
         kwh_scale = max(float(self.config.reward.scale_kwh), 1.0)
+        opp_scale = max(float(self.config.reward.scale_opportunity), 1.0)
 
         pnl_norm = pnl_step_total / money_scale
         risk_norm = risk_penalty / money_scale
         overhedge_norm = overhedge_kwh / kwh_scale
         transaction_norm = transaction_costs / money_scale
         duplicate_norm = duplicate_buy_penalty / money_scale
-        opportunity_norm = opportunity_cost / money_scale
-        opportunity_expiry_norm = opportunity_cost_expiry / money_scale
+        opportunity_norm = opportunity_cost / opp_scale
+        opportunity_expiry_norm = opportunity_cost_expiry / opp_scale
+
+        coverage_penalties: List[float] = []
+        for m in range(1, self.config.contract.max_horizon_months + 1):
+            demand_m = float(demand_to_cover_kwh_by_slot[m - 1])
+            covered_m = float(coverage_by_slot_kwh[m])
+
+            # ratio objetivo = 1.0 (ni sub ni sobre cobertura)
+            ratio_m = covered_m / max(demand_m, 1.0)
+            penalty_m = abs(1.0 - ratio_m)
+            coverage_penalties.append(penalty_m)
+
+        coverage_penalty = float(np.mean(coverage_penalties)) if coverage_penalties else 0.0
+
+        #reward = (
+        #    self.config.reward.w_pnl * pnl_norm
+        #    - self.config.reward.w_risk * risk_norm
+        #    - self.config.reward.w_overhedge * overhedge_norm
+        #    - self.config.reward.w_transaction * transaction_norm
+        #    - self.config.reward.w_duplicate * duplicate_norm
+        #    - self.config.reward.w_opportunity * opportunity_norm
+        #    - self.config.reward.w_opportunity_expiry * opportunity_expiry_norm
+        #)
 
         reward = (
             self.config.reward.w_pnl * pnl_norm
+            - self.config.reward.w_coverage * coverage_penalty
             - self.config.reward.w_risk * risk_norm
             - self.config.reward.w_overhedge * overhedge_norm
             - self.config.reward.w_transaction * transaction_norm
@@ -448,6 +478,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "reward_opportunity_norm": float(opportunity_norm),
             "opportunity_cost_expiry": float(opportunity_cost_expiry),
             "reward_opportunity_expiry_norm": float(opportunity_expiry_norm),
+            "coverage_penalty": float(coverage_penalty),
             "current_date": str(current_date.date())
         }
 
@@ -532,7 +563,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         - comisión_cierre
         """
         pos = self.inventory[nem]
-        pnl_close = (close_price - pos.prev_price) * pos.contract_size_kwh * pos.quantity_contracts
+        pnl_close = (close_price - pos.entry_price) * pos.contract_size_kwh * pos.quantity_contracts
         close_notional = close_price * pos.contract_size_kwh * pos.quantity_contracts
         close_commission = close_notional * self.config.finance.comision_transaccion
         released_margin = pos.margin_balance
@@ -590,9 +621,58 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                 raise KeyError(f"nemotecnico_map_t1_t6 debe incluir {col}")
     
     def _roll_positions_slots(self, current_date: pd.Timestamp) -> None:
+        self.coverage_state[:] = 0.0
         for pos in self.inventory.values():
             months_diff = (pos.fecha_vencimiento.year - current_date.year) * 12 + (
                 pos.fecha_vencimiento.month - current_date.month
             )
             new_slot = max(1, min(self.config.contract.max_horizon_months, months_diff + 1))
             pos.month_slot = int(new_slot)
+
+            if 1 <= pos.month_slot <= self.config.contract.max_horizon_months:
+                # binario robusto
+                self.coverage_state[pos.month_slot - 1] = 1.0
+    
+    def _build_spot_lookup(self, datos_precios: pd.DataFrame) -> Dict[pd.Timestamp, float]:
+        """Construye lookup de precio spot diario desde datos_PRECIOS.csv."""
+        df = datos_precios.copy()
+        df["Fecha"] = pd.to_datetime(df["Fecha"])
+        price_col = "Precio_COP/kWh_Dia"
+        if price_col not in df.columns:
+            raise KeyError(f"Columna {price_col} no encontrada en datos_PRECIOS.csv")
+        
+        out: Dict[pd.Timestamp, float] = {}
+        for _, row in df.iterrows():
+            out[pd.Timestamp(row["Fecha"])] = float(row[price_col])
+        return out
+
+    def _get_spot_price(self, current_date: pd.Timestamp) -> float:
+        """Obtiene la media movil de 90 días de los precios spot del día desde datos_PRECIOS.csv.
+        
+        Si no existe fecha exacta, busca la media móvil más reciente anterior (ffill lógico).
+        """
+        if current_date in self.spot_price_lookup:
+            # Media móvil simple de 90 días (si hay suficientes datos)
+            window_size = 90
+            prices = []
+            for i in range(window_size):
+                date = current_date - pd.Timedelta(days=i)
+                if date in self.spot_price_lookup:
+                    prices.append(self.spot_price_lookup[date])
+            if prices:
+                return sum(prices) / len(prices)
+        
+        # Buscar la fecha más reciente anterior
+        available_dates = sorted(d for d in self.spot_price_lookup.keys() if d <= current_date)
+        if available_dates:
+            # Media móvil simple de 90 días para la fecha encontrada
+            window_size = 90
+            prices = []
+            for i in range(window_size):
+                date = available_dates[-1] - pd.Timedelta(days=i)
+                if date in self.spot_price_lookup:
+                    prices.append(self.spot_price_lookup[date])
+            if prices:
+                return sum(prices) / len(prices)
+        
+        return 0.0

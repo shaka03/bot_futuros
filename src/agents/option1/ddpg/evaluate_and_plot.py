@@ -61,8 +61,9 @@ def _split_out_of_sample(
 
     # Precios de liquidación (se usa completo)
     liq = processor.precios_liquidacion_df.copy() if processor.precios_liquidacion_df is not None else pd.DataFrame()
+    prec = processor.datos_precios_df.copy() if processor.datos_precios_df is not None else pd.DataFrame()
 
-    return seq_test, fut_test, nem_test, dem_test, liq
+    return seq_test, fut_test, nem_test, dem_test, liq, prec
 
 
 def compute_spot_benchmark_costs(
@@ -119,10 +120,10 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
     # Datos completos
     processor = DataProcessor(config)
     bundle = processor.get_agent_data("ELM")
-    initial_capital = config.finance.initial_capital_min
+    initial_capital = max(config.finance.initial_capital_min, bundle.dynamic_initial_capital)
 
     # Split test
-    seq_test, fut_test, nem_test, dem_test, liq_test = _split_out_of_sample(bundle, processor, config)
+    seq_test, fut_test, nem_test, dem_test, liq_test, prec_test = _split_out_of_sample(bundle, processor, config)
 
     # Entorno test
     env_test = ElectricityHedgingEnv(
@@ -131,6 +132,7 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
         nemotecnico_map_t1_t6=nem_test,
         demand_aligned=dem_test,
         precios_liquidacion=liq_test,
+        datos_precios=prec_test,
         initial_capital=initial_capital,
         config=config,
     )

@@ -103,7 +103,7 @@ class FinanceConfig:
 
     # Hiperparámetro para cálculo de capital inicial dinámico
     factor_holgura: float = 3.0
-    initial_capital_min: float = 1_000_000_000  # 1 mil millones COP
+    initial_capital_min: float = 10_000_000_000  # 10 mil millones COP
 
 
 # =========================
@@ -120,17 +120,20 @@ class RewardConfig:
     pnl_window_size: int = 30
 
     # Normalización
-    w_pnl: float = 1.2
+    w_pnl: float = 0.2
     w_risk: float = 0.1
-    w_overhedge: float = 0.4
-    w_transaction: float = 0.10
-    w_duplicate: float = 0.05
-    w_opportunity: float = 0.10
-    w_opportunity_expiry: float = 0.80
+    w_overhedge: float = 0.05
+    w_transaction: float = 0.05
+    w_duplicate: float = 0.0
+    w_opportunity: float = 0.1
+    w_opportunity_expiry: float = 0.8
+    w_coverage: float = 1.0
 
     # Escalas de normalización (COP / kWh)
     scale_money: float = 1e8
-    scale_kwh: float = 1e6
+    scale_kwh: float = 1e7
+    scale_opportunity: float = 1e6
+    scale_risk: float = 1e5
     
 
 # =========================
@@ -171,7 +174,7 @@ class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
     seed: int = 42
-    total_episodes: int = 300
+    total_episodes: int = 100
     test_ratio: float = 0.1
 
     # Inicio de iteraciones de negocio

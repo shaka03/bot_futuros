@@ -66,8 +66,9 @@ def _split_train_bundle(bundle, processor, config):
     fut_train = fut.set_index(["Fecha", "Nemotecnico"]).sort_index()
 
     liq = processor.precios_liquidacion_df.copy() if processor.precios_liquidacion_df is not None else pd.DataFrame()
+    prec = processor.datos_precios_df.copy() if processor.datos_precios_df is not None else pd.DataFrame()
 
-    return seq_train, fut_train, nem_train, dem_train, liq
+    return seq_train, fut_train, nem_train, dem_train, liq, prec
 
 
 def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
@@ -78,9 +79,9 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     # ------------------------------------------------------------------
     processor = DataProcessor(config)
     bundle = processor.get_agent_data("ELM")
-    initial_capital = config.finance.initial_capital_min
+    initial_capital = max(config.finance.initial_capital_min, bundle.dynamic_initial_capital)
 
-    seq_train, fut_train, nem_train, dem_train, liq_train = _split_train_bundle(bundle, processor, config)
+    seq_train, fut_train, nem_train, dem_train, liq_train, prec_train = _split_train_bundle(bundle, processor, config)
 
     env = ElectricityHedgingEnv(
         sequences_lstm=seq_train,
@@ -88,6 +89,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         nemotecnico_map_t1_t6=nem_train,
         demand_aligned=dem_train,
         precios_liquidacion=liq_train,
+        datos_precios=prec_train,
         initial_capital=initial_capital,
         config=config,
     )
@@ -195,6 +197,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
                 f"Terminated={terminated} | "
                 f"EndDate={end_date}"
             )
+            print(step_info)
 
     # ------------------------------------------------------------------
     # Guardado de histórico de entrenamiento
