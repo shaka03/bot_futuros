@@ -114,25 +114,24 @@ class RewardConfig:
     """Hiperparámetros de la función de recompensa."""
 
     lambda_riesgo: float = 1e-8
-    lambda_penalizacion: float = 0.0
+    lambda_penalizacion: float = 1e-8
     lambda_penalizacion_duplicados: float = 1e-8
     lambda_oportunidad: float = 1e-2
     pnl_window_size: int = 30
 
     # Normalización
-    w_pnl: float = 1.0
-    w_risk: float = 0.10
-    w_overhedge: float = 0.20
-    w_transaction: float = 0.05
-    w_duplicate: float = 0.01
-    w_opportunity: float = 0.30
+    w_pnl: float = 1.2
+    w_risk: float = 0.1
+    w_overhedge: float = 0.4
+    w_transaction: float = 0.10
+    w_duplicate: float = 0.05
+    w_opportunity: float = 0.10
+    w_opportunity_expiry: float = 0.80
 
     # Escalas de normalización (COP / kWh)
     scale_money: float = 1e8
     scale_kwh: float = 1e6
-
     
-
 
 # =========================
 # 5) Redes LSTM
@@ -153,15 +152,14 @@ class LSTMConfig:
 @dataclass(frozen=True)
 class DDPGConfig:
     """Hiperparámetros de entrenamiento DDPG."""
-
-    actor_lr: float = 1e-4
-    critic_lr: float = 3e-4
+    actor_lr: float = 5e-5
+    critic_lr: float = 2e-4
     gamma: float = 0.99
-    tau: float = 0.005
+    tau: float = 0.003
     batch_size: int = 256
-    buffer_capacity: int = 300_000
-    exploration_noise_std: float = 0.2
-    exploration_noise_min_std: float = 0.01
+    buffer_capacity: int = 400_000
+    exploration_noise_std: float = 0.25
+    exploration_noise_min_std: float = 0.03
     exploration_noise_decay: float = 0.999
 
 
@@ -173,7 +171,7 @@ class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
     seed: int = 42
-    total_episodes: int = 100
+    total_episodes: int = 300
     test_ratio: float = 0.1
 
     # Inicio de iteraciones de negocio

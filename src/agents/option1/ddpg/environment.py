@@ -159,6 +159,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         margin_calls_cost = 0.0
         withdrawals = 0.0
         settlement_pnl = 0.0
+        opportunity_cost_expiry = 0.0
 
         contracts_net_step_by_slot = np.zeros(self.config.contract.max_horizon_months, dtype=np.int32)
         demand_to_cover_kwh_by_slot = np.zeros(self.config.contract.max_horizon_months, dtype=np.float64)
@@ -268,6 +269,20 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     # Libera margen retenido
                     self.current_capital += pos.margin_balance
 
+                    # Oportunidad al vencimiento (slot de la posición)
+                    slot = int(pos.month_slot)
+                    demand_col = f"Demanda_Comprador_Dia_{slot:02d}Meses_Adelante"
+                    demand_real_kwh = self._get_expected_demand(current_date, demand_col)
+
+                    covered_kwh_slot = pos.quantity_contracts * pos.contract_size_kwh
+                    shortfall_kwh = max(0.0, demand_real_kwh - covered_kwh_slot)
+
+                    liq_ref = float(liq_price) if liq_price is not None else float(pos.prev_price)
+                    fut_ref = float(pos.entry_price)  # referencia simple
+                    spread_exp = max(0.0, liq_ref - fut_ref)
+
+                    opportunity_cost_expiry += spread_exp * shortfall_kwh
+
                     # Limpieza
                     del self.inventory[nem]
                     self.coverage_state[pos.month_slot - 1] = 0.0
@@ -366,6 +381,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         transaction_norm = transaction_costs / money_scale
         duplicate_norm = duplicate_buy_penalty / money_scale
         opportunity_norm = opportunity_cost / money_scale
+        opportunity_expiry_norm = opportunity_cost_expiry / money_scale
 
         reward = (
             self.config.reward.w_pnl * pnl_norm
@@ -374,6 +390,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             - self.config.reward.w_transaction * transaction_norm
             - self.config.reward.w_duplicate * duplicate_norm
             - self.config.reward.w_opportunity * opportunity_norm
+            - self.config.reward.w_opportunity_expiry * opportunity_expiry_norm
         )
         self.pnl_history.append(float(pnl_step_total))
         self.margin_account_balance_total = float(sum(p.margin_balance for p in self.inventory.values()))
@@ -429,6 +446,8 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "reward_tx_norm": float(transaction_norm),
             "reward_duplicate_norm": float(duplicate_norm),
             "reward_opportunity_norm": float(opportunity_norm),
+            "opportunity_cost_expiry": float(opportunity_cost_expiry),
+            "reward_opportunity_expiry_norm": float(opportunity_expiry_norm),
             "current_date": str(current_date.date())
         }
 
