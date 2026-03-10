@@ -100,7 +100,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         self.coverage_state: np.ndarray = np.zeros(self.config.contract.max_horizon_months, dtype=np.float32)
 
         # Penalización por compra duplicada (hiperparámetro simple)
-        self.duplicate_buy_penalty_value: float = self.config.reward.lambda_penalizacion_duplicados
+        self.duplicate_buy_penalty_value: float = 0.0
 
         # Índice rápido de liquidación: FechaVencimiento -> Precio_COP/kWh_Dia
         self.liq_price_by_date: Dict[pd.Timestamp, float] = self._build_settlement_lookup(self.precios_liquidacion)
@@ -128,6 +128,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         self.margin_account_balance_total = 0.0
         self.pnl_history.clear()
         self.coverage_state[:] = 0.0
+        self.duplicate_buy_penalty_value = 0.0
 
         obs = self._build_observation(self.current_step)
         info = {
@@ -329,7 +330,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         # 3) Penalización sobre-cobertura y sub-cobertura
         # --------------------------------------------------------------
         overhedge_kwh = self._compute_overhedge_kwh(current_date)
-        overhedge_penalty = self.config.reward.lambda_penalizacion * overhedge_kwh
+        #overhedge_penalty = self.config.reward.lambda_penalizacion * overhedge_kwh
 
         coverage_by_slot_kwh: Dict[int, float] = {
             m: 0.0 for m in range(1, self.config.contract.max_horizon_months + 1)
@@ -379,20 +380,23 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         pnl_step_total = pnl_delta + settlement_pnl
         pnl_mean_30 = float(np.mean(self.pnl_history)) if len(self.pnl_history) > 0 else 0.0
         downside = max(0.0, pnl_mean_30 - pnl_step_total) # solo penaliza si el paso actual es peor que la media histórica
-        risk_penalty = self.config.reward.lambda_riesgo * (downside ** 2) / max(self.config.reward.scale_money, 1.0)
+        risk_penalty = (downside ** 2)
 
         money_scale = max(float(self.config.reward.scale_money), 1.0)
         pnl_scale = max(float(self.config.reward.scale_pnl), 1.0)
         kwh_scale = max(float(self.config.reward.scale_kwh), 1.0)
         opp_scale = max(float(self.config.reward.scale_opportunity), 1.0)
+        opp_expiry_scale = max(float(self.config.reward.scale_opportunity_expiry), 1.0)
+        risk_scale = max(float(self.config.reward.scale_risk), 1.0)
+        tx_scale = max(float(self.config.reward.scale_tx), 1.0)
 
         pnl_norm = pnl_step_total / pnl_scale
-        risk_norm = risk_penalty / money_scale
+        risk_norm = risk_penalty / risk_scale
         overhedge_norm = overhedge_kwh / kwh_scale
-        transaction_norm = transaction_costs / money_scale
+        transaction_norm = transaction_costs / tx_scale
         duplicate_norm = duplicate_buy_penalty / money_scale
-        opportunity_norm = opportunity_cost / pnl_scale
-        opportunity_expiry_norm = opportunity_cost_expiry / opp_scale
+        opportunity_norm = opportunity_cost / opp_scale
+        opportunity_expiry_norm = opportunity_cost_expiry / opp_expiry_scale
 
         coverage_penalties: List[float] = []
         for m in range(1, self.config.contract.max_horizon_months + 1):
@@ -448,7 +452,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "margin_calls_cost": float(margin_calls_cost),
             "withdrawals": float(withdrawals),
             "risk_penalty": float(risk_penalty),
-            "overhedge_penalty": float(overhedge_penalty),
             "opportunity_cost": float(opportunity_cost),
             "spot_price_ref": float(spot_price_ref),
             "duplicate_buy_penalty": float(duplicate_buy_penalty),

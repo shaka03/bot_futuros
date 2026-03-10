@@ -113,28 +113,30 @@ class FinanceConfig:
 class RewardConfig:
     """Hiperparámetros de la función de recompensa."""
 
-    lambda_riesgo: float = 1e-8
-    lambda_penalizacion: float = 1e-8
-    lambda_penalizacion_duplicados: float = 1e-8
-    lambda_oportunidad: float = 1e-2
+    #lambda_riesgo: float = 1e-8
+    #lambda_penalizacion: float = 1e-8
+    #lambda_penalizacion_duplicados: float = 1e-8
+    #lambda_oportunidad: float = 1e-2
     pnl_window_size: int = 30
 
     # Normalización
-    w_pnl: float = 0.2
-    w_risk: float = 0.1
+    w_pnl: float = 0.1
+    w_risk: float = 0.2
     w_overhedge: float = 0.05
     w_transaction: float = 0.05
-    w_duplicate: float = 0.0
+    w_duplicate: float = 0.2
     w_opportunity: float = 0.1
-    w_opportunity_expiry: float = 0.8
+    w_opportunity_expiry: float = 1.0
     w_coverage: float = 1.0
 
     # Escalas de normalización (COP / kWh)
-    scale_pnl: float = 1e9
+    scale_pnl: float = 1e8
     scale_money: float = 1e7
+    scale_tx: float = 1e6
     scale_kwh: float = 1e7
-    scale_opportunity: float = 1e6
-    scale_risk: float = 1e5
+    scale_opportunity: float = 1e9
+    scale_opportunity_expiry: float = 1e6
+    scale_risk: float = 1e16
     
 
 # =========================
@@ -176,7 +178,7 @@ class GeneralConfig:
 
     seed: int = 42
     total_episodes: int = 300
-    test_ratio: float = 0.1
+    test_ratio: float = 0.09
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"

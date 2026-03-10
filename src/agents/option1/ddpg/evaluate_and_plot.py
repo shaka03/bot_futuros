@@ -282,7 +282,7 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
         merged["spot_cost"]
         - merged["pnl_step"]
         + merged["transaction_costs"].fillna(0.0)
-        + merged["margin_calls_cost"].fillna(0.0)
+        #+ merged["margin_calls_cost"].fillna(0.0)
     )
 
     total_spot = float(merged["spot_cost"].sum())
