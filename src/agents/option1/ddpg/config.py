@@ -127,7 +127,7 @@ class RewardConfig:
     w_duplicate: float = 0.2
     w_opportunity: float = 0.0
     w_opportunity_expiry: float = 1.0
-    w_coverage: float = 1.5
+    w_coverage: float = 1.0
 
     # Escalas de normalización (COP / kWh)
     scale_pnl: float = 1e8
