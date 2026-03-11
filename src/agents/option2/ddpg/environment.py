@@ -275,8 +275,8 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     #final_pnl = (spot_price - pos.prev_price) * pos.contract_size_kwh * pos.quantity_contracts
                     uncovered_demand_kwh = max(0.0, pos.expected_demand_kwh - (pos.quantity_contracts * pos.contract_size_kwh))
                     uncovered_cost = uncovered_demand_kwh * liq_price
-                    settlement_pnl += final_pnl# - uncovered_cost
-                    self.current_capital += final_pnl# - uncovered_cost
+                    settlement_pnl += final_pnl - uncovered_cost
+                    self.current_capital += final_pnl - uncovered_cost
 
                     # Libera margen retenido
                     self.current_capital += pos.margin_balance

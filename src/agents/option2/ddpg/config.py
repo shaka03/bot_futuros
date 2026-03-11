@@ -48,12 +48,12 @@ class PathsConfig:
         object.__setattr__(
             self,
             "model_dir",
-            self.project_root / "src" / "models" / "option1" / "ddpg",
+            self.project_root / "src" / "models" / "option2" / "ddpg",
         )
         object.__setattr__(
             self,
             "results_dir",
-            self.project_root / "results" / "option1",
+            self.project_root / "results" / "option2",
         )
 
     def ensure_output_dirs(self) -> None:
@@ -127,7 +127,7 @@ class RewardConfig:
     w_duplicate: float = 0.2
     w_opportunity: float = 0.0
     w_opportunity_expiry: float = 1.0
-    w_coverage: float = 1.5
+    w_coverage: float = 0.8
 
     # Escalas de normalización (COP / kWh)
     scale_pnl: float = 1e8
