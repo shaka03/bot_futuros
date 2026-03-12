@@ -137,6 +137,8 @@ def process_data(
             
             elif key == "precios":
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])
+                for col in ["Precio_COP/kWh_Dia", "Precio_COP/kWh_0-7", "Precio_COP/kWh_7-17", "Precio_COP/kWh_17-23"]:
+                    df = limpiar_outliers(df.copy(), col)
                 df.to_csv(os.path.join(Config.GOLD_DATA_PATH, "datos_PRECIOS.csv"), index=False)
                 list_var_sistema.append(df)
 
@@ -147,6 +149,11 @@ def process_data(
                 df_precios_mes = df_precios_mes.drop(columns=["Fecha"])
                 df_precios_mes = df_precios_mes.groupby("FechaVencimiento").mean().reset_index()
                 df_precios_mes.to_csv(os.path.join(Config.GOLD_DATA_PATH, "precios_LIQUIDACION.csv"), index=False)
+            
+            elif key == "precios_ponderados":
+                df = pd.read_csv(file_path, parse_dates=["Fecha"])
+                df = limpiar_outliers(df.copy(), "Precio_Ponderado_COP/kWh")
+                list_var_sistema.append(df)
             
             elif key == "noticias":
                 df = pd.read_csv(file_path, parse_dates=["Fecha"])
@@ -234,7 +241,7 @@ def process_data(
                     # Cálculo de beta móvil 30 días
                     df_sistema[f"Retorno_{col}"] = np.log(df_sistema[col] / df_sistema[col].shift(1))
                     rolling_cov = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).cov(df_sistema["Retorno_Precio_Dia"])
-                    rolling_var = df_sistema["Retorno_Precio_Dia"].rolling(window="30D", min_periods=30).var()
+                    rolling_var = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).var()
                     df_sistema[f"Beta_MA30_{col}"]  = rolling_cov / rolling_var
             if tipo == "MTB":
                 for col in cols:
@@ -244,7 +251,7 @@ def process_data(
                     # Cálculo de beta móvil 30 días
                     df_sistema[f"Retorno_{col}"] = np.log(df_sistema[col] / df_sistema[col].shift(1))
                     rolling_cov = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).cov(df_sistema["Retorno_Precio_0-7"])
-                    rolling_var = df_sistema["Retorno_Precio_0-7"].rolling(window="30D", min_periods=30).var()
+                    rolling_var = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).var()
                     df_sistema[f"Beta_MA30_{col}"]  = rolling_cov / rolling_var
             if tipo == "DTB":
                 for col in cols:
@@ -254,7 +261,7 @@ def process_data(
                     # Cálculo de beta móvil 30 días
                     df_sistema[f"Retorno_{col}"] = np.log(df_sistema[col] / df_sistema[col].shift(1))
                     rolling_cov = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).cov(df_sistema["Retorno_Precio_7-17"])
-                    rolling_var = df_sistema["Retorno_Precio_7-17"].rolling(window="30D", min_periods=30).var()
+                    rolling_var = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).var()
                     df_sistema[f"Beta_MA30_{col}"]  = rolling_cov / rolling_var
             if tipo == "NTB":
                 for col in cols:
@@ -264,7 +271,7 @@ def process_data(
                     # Cálculo de beta móvil 30 días
                     df_sistema[f"Retorno_{col}"] = np.log(df_sistema[col] / df_sistema[col].shift(1))
                     rolling_cov = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).cov(df_sistema["Retorno_Precio_17-23"])
-                    rolling_var = df_sistema["Retorno_Precio_17-23"].rolling(window="30D", min_periods=30).var()
+                    rolling_var = df_sistema[f"Retorno_{col}"].rolling(window="30D", min_periods=30).var()
                     df_sistema[f"Beta_MA30_{col}"]  = rolling_cov / rolling_var
         
         # Guardar los datasets finales en GOLD
@@ -277,7 +284,7 @@ def process_data(
         ]
 
         dict_sistema_contrato = {
-            "ELM": cols_system + [col for col in df_sistema.columns if "ELM" in col or "_Dia" in col],
+            "ELM": cols_system + [col for col in df_sistema.columns if "ELM" in col or "_Dia" in col] + ["Precio_Ponderado_COP/kWh"],
             "MTB": cols_system + [col for col in df_sistema.columns if "MTB" in col or "_0-7" in col],
             "DTB": cols_system + [col for col in df_sistema.columns if "DTB" in col or "_7-17" in col],
             "NTB": cols_system+ [col for col in df_sistema.columns if "NTB" in col or "_17-23" in col]

@@ -211,6 +211,12 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
                 "margin_balance_total": float(info.get("margin_balance_total", np.nan)),
                 "sobre_cobertura_kwh": float(info.get("sobre_cobertura_kwh", 0.0)),
                 "spot_price": spot_price,
+                "future_price_t1": float(info.get("future_price_t1", np.nan)),
+                "future_price_t2": float(info.get("future_price_t2", np.nan)),
+                "future_price_t3": float(info.get("future_price_t3", np.nan)),
+                "future_price_t4": float(info.get("future_price_t4", np.nan)),
+                "future_price_t5": float(info.get("future_price_t5", np.nan)),
+                "future_price_t6": float(info.get("future_price_t6", np.nan)),
                 "covered_kwh_total": covered_kwh,
                 "action_cont_1": float(action[0]),
                 "action_cont_2": float(action[1]),
@@ -276,13 +282,13 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
     """Construye reporte financiero agregado."""
     # Costo estrategia DDPG aproximado = costo spot - pnl + costos operativos
     merged = eval_df.merge(spot_daily[["Fecha", "spot_cost"]], on="Fecha", how="left")
-    merged["spot_cost"] = merged["spot_cost"].ffill()
+    merged["spot_cost"] = merged["spot_cost"].ffill().bfill()
 
     merged["strategy_cost_daily"] = (
         merged["spot_cost"]
         - merged["pnl_step"]
         + merged["transaction_costs"].fillna(0.0)
-        #+ merged["margin_calls_cost"].fillna(0.0)
+        + merged["margin_calls_cost"].fillna(0.0)
     )
 
     total_spot = float(merged["spot_cost"].sum())

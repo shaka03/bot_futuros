@@ -115,6 +115,9 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
 
     best_reward = -np.inf
 
+    train_no_improvement_count = 0
+    train_threshold = int(getattr(config.general, "train_threshold", 20))
+
     # ------------------------------------------------------------------
     # 3) Bucle de entrenamiento por episodios
     # ------------------------------------------------------------------
@@ -137,6 +140,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         ep_duplicate_norm = 0.0
         ep_opportunity_norm = 0.0
         ep_opportunity_expiry_norm = 0.0
+        ep_capital_ratio = 0.0
         conteo = 0
 
         # ------------------------------------------------------------------
@@ -169,6 +173,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
             ep_duplicate_norm += float(step_info.get("reward_duplicate_norm", 0.0))
             ep_opportunity_norm += float(step_info.get("reward_opportunity_norm", 0.0))
             ep_opportunity_expiry_norm += float(step_info.get("reward_opportunity_expiry_norm", 0.0))
+            ep_capital_ratio += float(step_info.get("capital_ratio_norm", 0.0))
 
             # Conteo aproximado de margin calls (si hubo costo > 0 en el step)
             if float(step_info.get("margin_calls_cost", 0.0)) > 0.0:
@@ -196,10 +201,15 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         # ------------------------------------------------------------------
         # 6) Guardado best model
         # ------------------------------------------------------------------
-        if ep_reward > best_reward:
+        if ep_reward > best_reward: # guarda si mejora al menos un 10% respecto al mejor reward
             best_reward = ep_reward
             torch.save(agent.actor.state_dict(), weights_dir / "best_actor_ddpg.pt")
             torch.save(agent.critic.state_dict(), weights_dir / "best_critic_ddpg.pt")
+            train_no_improvement_count = 0
+            print(f"Nuevo best model guardado con reward {best_reward:,.2f} en episodio {episode}.")
+        else:
+            train_no_improvement_count += 1
+
 
         # Logging en consola
         if episode % log_every == 0 or episode == 1 or episode == total_episodes:
@@ -219,17 +229,26 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
                 f"OpportunityNorm={ep_opportunity_norm / conteo:,.2f} | "
                 f"OpportunityExpiryNorm={ep_opportunity_expiry_norm / conteo:,.2f} | "
                 f"CoveragePenalty={ep_coverage_penalty / conteo:,.2f} | "
+                f"CapitalRatioNorm={ep_capital_ratio / conteo:,.2f} | "
                 f"Truncated={truncated} | "
                 f"Terminated={terminated} | "
                 f"EndDate={end_date}"
             )
+        
+        # Early stopping simple basado en no mejora por N episodios
+        if train_no_improvement_count >= train_threshold:
+            total_episodes_run = episode
+            print(f"Early stopping en episodio {episode} por no mejora en {train_threshold} episodios.")
+            break
+        else:
+            total_episodes_run = total_episodes
 
     # ------------------------------------------------------------------
     # Guardado de histórico de entrenamiento
     # ------------------------------------------------------------------
     history_df = pd.DataFrame(
         {
-            "episode": np.arange(1, total_episodes + 1, dtype=int),
+            "episode": np.arange(1, total_episodes_run + 1, dtype=int),
             "episode_reward": episode_rewards,
             "episode_pnl": episode_pnls,
             "margin_calls_count": margin_calls_count,
