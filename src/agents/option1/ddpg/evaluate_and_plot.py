@@ -82,8 +82,8 @@ def compute_spot_benchmark_costs(
     prices["Fecha"] = pd.to_datetime(prices["Fecha"])
 
     # Columna spot (se asume la principal del CSV)
-    if "Precio_COP/kWh_Dia" in prices.columns:
-        spot_col = "Precio_COP/kWh_Dia"
+    if f"Precio_COP/kWh_{CONFIG.contract.bloque}" in prices.columns:
+        spot_col = f"Precio_COP/kWh_{CONFIG.contract.bloque}"
     else:
         # fallback: primera columna numérica distinta de Fecha
         numeric_cols = [c for c in prices.columns if c != "Fecha" and pd.api.types.is_numeric_dtype(prices[c])]
@@ -96,8 +96,8 @@ def compute_spot_benchmark_costs(
         dem = dem.rename(columns={dem.columns[0]: "Fecha"})
 
     # Demanda diaria base
-    if "Demanda_kWh_Dia_Comprador" in dem.columns:
-        dem_col = "Demanda_kWh_Dia_Comprador"
+    if f"Demanda_kWh_{CONFIG.contract.bloque}_Comprador" in dem.columns:
+        dem_col = f"Demanda_kWh_{CONFIG.contract.bloque}_Comprador"
     else:
         demand_candidates = [c for c in dem.columns if "Demanda" in c and "Meses_Adelante" not in c]
         if not demand_candidates:

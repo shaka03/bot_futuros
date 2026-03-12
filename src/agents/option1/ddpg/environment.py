@@ -53,7 +53,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         futures_lookup: pd.DataFrame,              # MultiIndex (Fecha, Nemotecnico)
         nemotecnico_map_t1_t6: pd.DataFrame,       # index Fecha, cols Nemotecnico_t1..t6
         demand_aligned: pd.DataFrame,              # index Fecha
-        precios_liquidacion: pd.DataFrame,         # cols: FechaVencimiento, Precio_COP/kWh_Dia
+        precios_liquidacion: pd.DataFrame,         # cols: FechaVencimiento, Precio_COP/kWh_bloque
         datos_precios: pd.DataFrame,
         initial_capital: float,
         config: ProjectConfig = CONFIG,
@@ -103,7 +103,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         # Penalización por compra duplicada (hiperparámetro simple)
         self.duplicate_buy_penalty_value: float = 0.0
 
-        # Índice rápido de liquidación: FechaVencimiento -> Precio_COP/kWh_Dia
+        # Índice rápido de liquidación: FechaVencimiento -> Precio_COP/kWh_bloque
         self.liq_price_by_date: Dict[pd.Timestamp, float] = self._build_settlement_lookup(self.precios_liquidacion)
 
         self.spot_price_lookup: Dict[pd.Timestamp, float] = self._build_spot_lookup(datos_precios)
@@ -189,7 +189,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
             price_today = float(row["Precio"])
             expiry_date = pd.to_datetime(row["FechaVencimientoContrato"])
-            demand_col = f"Demanda_Comprador_Dia_{month_slot:02d}Meses_Adelante"
+            demand_col = f"Demanda_Comprador_{self.config.contract.bloque}_{month_slot:02d}Meses_Adelante"
             expected_demand_kwh = self._get_expected_demand(current_date, demand_col)
             demand_to_cover_kwh_by_slot[month_slot - 1] = float(expected_demand_kwh)    
 
@@ -354,7 +354,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         # Castiga no cubrir cuando ex-post el spot estuvo por encima del futuro del slot
         opportunity_cost = 0.0
         for month_slot in range(1, self.config.contract.max_horizon_months + 1):
-            demand_col = f"Demanda_Comprador_Dia_{month_slot:02d}Meses_Adelante"
+            demand_col = f"Demanda_Comprador_{self.config.contract.bloque}_{month_slot:02d}Meses_Adelante"
             expected_demand_kwh = self._get_expected_demand(current_date, demand_col)
             covered_kwh = coverage_by_slot_kwh[month_slot]
 
@@ -644,7 +644,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
         over = 0.0
         for m in range(1, self.config.contract.max_horizon_months + 1):
-            demand_col = f"Demanda_Comprador_Dia_{m:02d}Meses_Adelante"
+            demand_col = f"Demanda_Comprador_{self.config.contract.bloque}_{m:02d}Meses_Adelante"
             expected = self._get_expected_demand(date, demand_col)
             over += max(0.0, covered_by_slot[m] - expected)
         return float(over)
@@ -656,7 +656,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             return {}
         df["FechaVencimiento"] = pd.to_datetime(df["FechaVencimiento"])
 
-        price_col = "Precio_COP/kWh_Dia"
+        price_col = f"Precio_COP/kWh_{self.config.contract.bloque}"
         if price_col not in df.columns:
             return {}
 
@@ -701,7 +701,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         """Construye lookup de precio spot diario desde datos_PRECIOS.csv."""
         df = datos_precios.copy()
         df["Fecha"] = pd.to_datetime(df["Fecha"])
-        price_col = "Precio_COP/kWh_Dia"
+        price_col = f"Precio_COP/kWh_{self.config.contract.bloque}"
         if price_col not in df.columns:
             raise KeyError(f"Columna {price_col} no encontrada en datos_PRECIOS.csv")
         

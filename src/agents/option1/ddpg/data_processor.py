@@ -208,7 +208,7 @@ class DataProcessor:
         """Calcula capital inicial dinámico en COP según fórmula de negocio."""
         self._check_loaded()
 
-        demand_col = "Demanda_kWh_Dia_Comprador"
+        demand_col = f"Demanda_kWh_{self.config.contract.bloque}_Comprador"
         if demand_col not in self.demanda_df.columns:
             raise KeyError(f"No existe columna requerida: {demand_col}")
 
@@ -356,9 +356,11 @@ class DataProcessor:
         numeric_cols = [c for c in df.columns if self._is_numeric(df[c])]
 
         excluded_patterns = [
-            "Demanda_Comprador",
-            "Demanda_kWh_Dia_Comprador",
+            #"Demanda_Comprador",
+            #f"Demanda_kWh_{self.config.contract.bloque}_Comprador",
             "Coverage_Mes_",
+            "MinDaysToExpiry",
+            "CapitalRatio"
         ]
 
         selected: List[str] = []

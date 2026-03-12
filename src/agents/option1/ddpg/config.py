@@ -120,8 +120,8 @@ class RewardConfig:
     pnl_window_size: int = 30
 
     # Normalización
-    w_pnl: float = 0.10
-    w_risk: float = 0.60
+    w_pnl: float = 0.20
+    w_risk: float = 0.70
     w_overhedge: float = 0.10
     w_transaction: float = 0.10
     w_duplicate: float = 0.00
