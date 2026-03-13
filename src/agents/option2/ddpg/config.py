@@ -53,7 +53,7 @@ class PathsConfig:
         object.__setattr__(
             self,
             "results_dir",
-            self.project_root / "results" / "option2",
+            self.project_root / "results" / "option2" / "ddpg",
         )
 
     def ensure_output_dirs(self) -> None:
@@ -128,8 +128,8 @@ class RewardConfig:
     w_opportunity_expiry: float = 0.10
     w_coverage: float = 0.25
     w_capital_stress: float = 0.80
-    w_margin_call: float = 0.10
-    w_carry: float = 0.08
+    w_margin_call: float = 0.20
+    w_carry: float = 0.12
 
     # Escalas de normalización (COP / kWh)
     scale_pnl: float = 5e7
@@ -148,8 +148,7 @@ class RewardConfig:
 @dataclass(frozen=True)
 class LSTMConfig:
     """Arquitectura recurrente para actor/crítico."""
-
-    sequence_length: int = 14
+    sequence_length: int = 30
     hidden_size: int = 128
     num_layers: int = 2
     dropout: float = 0.0
@@ -180,7 +179,7 @@ class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
     seed: int = 20
-    total_episodes: int = 300
+    total_episodes: int = 200
     test_ratio: float = 0.09
     discretize_limit: float = 0.40
 

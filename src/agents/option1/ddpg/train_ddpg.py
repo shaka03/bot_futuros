@@ -35,7 +35,7 @@ def _resolve_output_dirs(config: ProjectConfig) -> Tuple[Path, Path]:
     if hasattr(config.paths, "results_dir"):
         results_dir = Path(config.paths.results_dir)
     else:
-        results_dir = Path("results/option1")
+        results_dir = Path("results/option1/ddpg")
 
     weights_dir.mkdir(parents=True, exist_ok=True)
     results_dir.mkdir(parents=True, exist_ok=True)

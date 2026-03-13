@@ -392,7 +392,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                 spread = max(0.0, spot_price_ref - float(fut_price))
                 opportunity_cost += spread * shortfall_kwh
 
-
         # --------------------------------------------------------------
         # 4) Recompensa media-varianza
         # --------------------------------------------------------------

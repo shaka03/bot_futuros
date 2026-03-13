@@ -53,7 +53,7 @@ class PathsConfig:
         object.__setattr__(
             self,
             "results_dir",
-            self.project_root / "results" / "option1",
+            self.project_root / "results" / "option1" / "ddpg",
         )
 
     def ensure_output_dirs(self) -> None:
