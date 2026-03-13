@@ -103,7 +103,7 @@ class FinanceConfig:
 
     # Hiperparámetro para cálculo de capital inicial dinámico
     factor_holgura: float = 3.0
-    initial_capital_min: float = 5_000_000_000  # 5 mil millones COP
+    initial_capital_min: float = 5_000_000_000  # 1 mil millones COP
 
 
 # =========================
@@ -120,15 +120,16 @@ class RewardConfig:
     pnl_window_size: int = 30
 
     # Normalización
-    w_pnl: float = 0.10
-    w_risk: float = 0.70
-    w_overhedge: float = 0.10
+    w_pnl: float = 0.50
+    w_risk: float = 0.00
+    w_overhedge: float = 0.00
     w_transaction: float = 0.10
-    w_duplicate: float = 0.00
     w_opportunity: float = 0.20
-    w_opportunity_expiry: float = 1.00
-    w_coverage: float = 1.20
-    w_capital_stress: float = 0.6
+    w_opportunity_expiry: float = 0.10
+    w_coverage: float = 0.25
+    w_capital_stress: float = 0.80
+    w_margin_call: float = 0.10
+    w_carry: float = 0.08
 
     # Escalas de normalización (COP / kWh)
     scale_pnl: float = 5e7
@@ -138,6 +139,7 @@ class RewardConfig:
     scale_opportunity: float = 1e9
     scale_opportunity_expiry: float = 8e5
     scale_risk: float = 8e15
+    scale_carry: float = 1e8
     
 
 # =========================
@@ -147,7 +149,7 @@ class RewardConfig:
 class LSTMConfig:
     """Arquitectura recurrente para actor/crítico."""
 
-    sequence_length: int = 30
+    sequence_length: int = 14
     hidden_size: int = 128
     num_layers: int = 2
     dropout: float = 0.0
@@ -165,9 +167,9 @@ class DDPGConfig:
     tau: float = 0.002
     batch_size: int = 256
     buffer_capacity: int = 400_000
-    exploration_noise_std: float = 0.30
-    exploration_noise_min_std: float = 0.02
-    exploration_noise_decay: float = 0.998
+    exploration_noise_std: float = 0.20
+    exploration_noise_min_std: float = 0.03
+    exploration_noise_decay: float = 0.9992
 
 
 # =========================
@@ -178,8 +180,9 @@ class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
     seed: int = 20
-    total_episodes: int = 300
-    test_ratio: float = 0.1
+    total_episodes: int = 50
+    test_ratio: float = 0.09
+    discretize_limit: float = 0.40
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"

@@ -112,6 +112,8 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     margin_calls_count: List[int] = []
     overhedging_penalties: List[float] = []
     episode_times_sec: List[float] = []
+    episode_tx_costs: List[float] = []
+    episode_ahorros: List[float] = []
 
     best_reward = -np.inf
 
@@ -141,7 +143,11 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         ep_opportunity_norm = 0.0
         ep_opportunity_expiry_norm = 0.0
         ep_capital_ratio = 0.0
+        ep_carry_norm = 0.0
         conteo = 0
+
+        ep_tx_cost = 0.0
+        ep_ahorro = 0.0
 
         # ------------------------------------------------------------------
         # 4) Inner loop: interacción + aprendizaje
@@ -163,6 +169,8 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
             ep_reward += float(reward)
             ep_pnl += float(step_info.get("pnl_delta_mtm", 0.0)) + float(step_info.get("pnl_settlement", 0.0))
             ep_overhedge += float(step_info.get("sobre_cobertura_kwh", 0.0))
+            ep_tx_cost += float(step_info.get("transaction_costs", 0.0))
+            ep_ahorro += (float(step_info.get("pnl_delta_mtm", 0.0)) + float(step_info.get("pnl_settlement", 0.0)) - float(step_info.get("transaction_costs", 0.0)))
 
             # nuevos acumulados para análisis detallado
             ep_coverage_penalty += float(step_info.get("coverage_penalty", 0.0))
@@ -173,6 +181,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
             ep_duplicate_norm += float(step_info.get("reward_duplicate_norm", 0.0))
             ep_opportunity_norm += float(step_info.get("reward_opportunity_norm", 0.0))
             ep_opportunity_expiry_norm += float(step_info.get("reward_opportunity_expiry_norm", 0.0))
+            ep_carry_norm += float(step_info.get("reward_carry_norm", 0.0))
             ep_capital_ratio += float(step_info.get("capital_ratio_norm", 0.0))
 
             # Conteo aproximado de margin calls (si hubo costo > 0 en el step)
@@ -196,13 +205,15 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
         margin_calls_count.append(ep_margin_calls)
         overhedging_penalties.append(ep_overhedge)
         episode_times_sec.append(ep_time)
+        episode_tx_costs.append(ep_tx_cost)
+        episode_ahorros.append(ep_ahorro)
         end_date = step_info.get("current_date", "N/A")
 
         # ------------------------------------------------------------------
         # 6) Guardado best model
         # ------------------------------------------------------------------
-        if ep_reward > best_reward: # guarda si mejora al menos un 10% respecto al mejor reward
-            best_reward = ep_reward
+        if ep_ahorro > best_reward:
+            best_reward = ep_ahorro
             torch.save(agent.actor.state_dict(), weights_dir / "best_actor_ddpg.pt")
             torch.save(agent.critic.state_dict(), weights_dir / "best_critic_ddpg.pt")
             train_no_improvement_count = 0
@@ -217,6 +228,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
                 f"[Episodio {episode:4d}/{total_episodes}] "
                 f"Reward={ep_reward:,.2f} | "
                 f"PnL={ep_pnl:,.2f} | "
+                f"Ahorro={ep_ahorro:,.2f} | TxCost={ep_tx_cost:,.2f} | "
                 f"NoiseStd={agent.noise_std:.4f} | "
                 f"Tiempo={ep_time:.2f}s | "
                 f"Cap={step_info.get('capital_actual', 0):,.0f} | "
@@ -225,11 +237,11 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
                 f"RiskNorm={ep_risk_norm / conteo:,.2f} | "
                 f"OverhedgeNorm={ep_overhedge_norm / conteo:,.2f} | "
                 f"TransactionNorm={ep_transaction_norm / conteo:,.2f} | "
-                f"DuplicateNorm={ep_duplicate_norm / conteo:,.2f} | "
                 f"OpportunityNorm={ep_opportunity_norm / conteo:,.2f} | "
                 f"OpportunityExpiryNorm={ep_opportunity_expiry_norm / conteo:,.2f} | "
                 f"CoveragePenalty={ep_coverage_penalty / conteo:,.2f} | "
                 f"CapitalRatioNorm={ep_capital_ratio / conteo:,.2f} | "
+                f"CarryNorm={ep_carry_norm / conteo:,.2f} | "
                 f"Truncated={truncated} | "
                 f"Terminated={terminated} | "
                 f"EndDate={end_date}"
@@ -251,6 +263,8 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
             "episode": np.arange(1, total_episodes_run + 1, dtype=int),
             "episode_reward": episode_rewards,
             "episode_pnl": episode_pnls,
+            "episode_tx_cost": episode_tx_costs,
+            "episode_ahorro_cop": episode_ahorros,
             "margin_calls_count": margin_calls_count,
             "overhedging_penalty_kwh_sum": overhedging_penalties,
             "episode_time_sec": episode_times_sec,
@@ -261,6 +275,8 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     return {
         "episode_rewards": episode_rewards,
         "episode_pnls": episode_pnls,
+        "episode_tx_costs": episode_tx_costs,
+        "episode_ahorros": episode_ahorros,
         "margin_calls_count": margin_calls_count,
         "overhedging_penalties": overhedging_penalties,
         "episode_times_sec": episode_times_sec,

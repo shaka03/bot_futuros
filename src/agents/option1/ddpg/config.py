@@ -120,16 +120,16 @@ class RewardConfig:
     pnl_window_size: int = 30
 
     # Normalización
-    w_pnl: float = 0.20
+    w_pnl: float = 0.50
     w_risk: float = 0.00
     w_overhedge: float = 0.00
-    w_transaction: float = 0.25
-    w_opportunity: float = 0.00
+    w_transaction: float = 0.10
+    w_opportunity: float = 0.20
     w_opportunity_expiry: float = 0.10
-    w_coverage: float = 1.00
-    w_capital_stress: float = 1.40
-    w_margin_call: float = 0.60
-    w_carry: float = 0.25
+    w_coverage: float = 0.25
+    w_capital_stress: float = 0.80
+    w_margin_call: float = 0.10
+    w_carry: float = 0.08
 
     # Escalas de normalización (COP / kWh)
     scale_pnl: float = 5e7
@@ -182,7 +182,7 @@ class GeneralConfig:
     seed: int = 20
     total_episodes: int = 50
     test_ratio: float = 0.09
-    discretize_limit: float = 0.50
+    discretize_limit: float = 0.40
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"
