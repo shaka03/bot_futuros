@@ -180,7 +180,7 @@ class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
     seed: int = 20
-    total_episodes: int = 50
+    total_episodes: int = 300
     test_ratio: float = 0.09
     discretize_limit: float = 0.40
 

@@ -1,2 +1,2 @@
-Ahorro_Total_COP,Costo_Total_Spot_COP,Costo_Total_Estrategia_DDPG_COP,Reduccion_Volatilidad_COP_std,Volatilidad_Spot_std,Volatilidad_Estrategia_std,Total_Margin_Calls,Tasa_Sobrecobertura,Sharpe_PnL
--1202733397.725809,1207815909.4542017,2410549307.180011,-60949723.00112514,5626896.239739754,66576619.240864895,21,0.410958904109589,-0.23858351108254652
+Ahorro_Total_COP,Costo_Total_Spot_COP,Costo_Total_Estrategia_DDPG_COP,Reduccion_Volatilidad_COP_std,Volatilidad_Spot_std,Volatilidad_Estrategia_std,Total_Margin_Calls,Total_Margin_Calls_COP,Sharpe_PnL
+-318095758.79999995,1207815909.4542017,1525911668.2542017,-31937579.854044884,5626896.239739754,37564476.09378464,3,411879600.00000006,-0.10973093925104366

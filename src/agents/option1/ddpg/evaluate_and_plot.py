@@ -42,7 +42,7 @@ def _split_out_of_sample(
 
     # Índices de timeline compatibles con environment.reset() (current_step=sequence_length)
     full_timeline = bundle.nemotecnico_map_t1_t6.index
-    seq_len = CONFIG.lstm.sequence_length
+    seq_len = config.lstm.sequence_length
 
     # Mapeo aproximado: seq i corresponde al bloque [i : i+seq_len-1]
     # Para test, comenzamos desde índice temporal cut + seq_len - 1
@@ -69,6 +69,7 @@ def _split_out_of_sample(
 def compute_spot_benchmark_costs(
     demand_aligned: pd.DataFrame,
     datos_precios_df: pd.DataFrame,
+    config: ProjectConfig = CONFIG,
 ) -> pd.DataFrame:
     """Escenario base: compra 100% spot.
 
@@ -82,8 +83,8 @@ def compute_spot_benchmark_costs(
     prices["Fecha"] = pd.to_datetime(prices["Fecha"])
 
     # Columna spot (se asume la principal del CSV)
-    if f"Precio_COP/kWh_{CONFIG.contract.bloque}" in prices.columns:
-        spot_col = f"Precio_COP/kWh_{CONFIG.contract.bloque}"
+    if f"Precio_COP/kWh_{config.contract.bloque}" in prices.columns:
+        spot_col = f"Precio_COP/kWh_{config.contract.bloque}"
     else:
         # fallback: primera columna numérica distinta de Fecha
         numeric_cols = [c for c in prices.columns if c != "Fecha" and pd.api.types.is_numeric_dtype(prices[c])]
@@ -96,8 +97,8 @@ def compute_spot_benchmark_costs(
         dem = dem.rename(columns={dem.columns[0]: "Fecha"})
 
     # Demanda diaria base
-    if f"Demanda_kWh_{CONFIG.contract.bloque}_Comprador" in dem.columns:
-        dem_col = f"Demanda_kWh_{CONFIG.contract.bloque}_Comprador"
+    if f"Demanda_kWh_{config.contract.bloque}_Comprador" in dem.columns:
+        dem_col = f"Demanda_kWh_{config.contract.bloque}_Comprador"
     else:
         demand_candidates = [c for c in dem.columns if "Demanda" in c and "Meses_Adelante" not in c]
         if not demand_candidates:
@@ -156,6 +157,7 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
     spot_daily = compute_spot_benchmark_costs(
         demand_aligned=dem_test,
         datos_precios_df=processor.datos_precios_df if processor.datos_precios_df is not None else pd.DataFrame(),
+        config=config
     )
 
     # Rollout evaluación
