@@ -82,8 +82,8 @@ def compute_spot_benchmark_costs(
     prices["Fecha"] = pd.to_datetime(prices["Fecha"])
 
     # Columna spot (se asume la principal del CSV)
-    if "Precio_COP/kWh_Dia" in prices.columns:
-        spot_col = "Precio_COP/kWh_Dia"
+    if f"Precio_COP/kWh_{CONFIG.contract.bloque}" in prices.columns:
+        spot_col = f"Precio_COP/kWh_{CONFIG.contract.bloque}"
     else:
         # fallback: primera columna numérica distinta de Fecha
         numeric_cols = [c for c in prices.columns if c != "Fecha" and pd.api.types.is_numeric_dtype(prices[c])]
@@ -96,8 +96,8 @@ def compute_spot_benchmark_costs(
         dem = dem.rename(columns={dem.columns[0]: "Fecha"})
 
     # Demanda diaria base
-    if "Demanda_kWh_Dia_Comprador" in dem.columns:
-        dem_col = "Demanda_kWh_Dia_Comprador"
+    if f"Demanda_kWh_{CONFIG.contract.bloque}_Comprador" in dem.columns:
+        dem_col = f"Demanda_kWh_{CONFIG.contract.bloque}_Comprador"
     else:
         demand_candidates = [c for c in dem.columns if "Demanda" in c and "Meses_Adelante" not in c]
         if not demand_candidates:
@@ -211,6 +211,12 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
                 "margin_balance_total": float(info.get("margin_balance_total", np.nan)),
                 "sobre_cobertura_kwh": float(info.get("sobre_cobertura_kwh", 0.0)),
                 "spot_price": spot_price,
+                "future_price_t1": float(info.get("future_price_t1", np.nan)),
+                "future_price_t2": float(info.get("future_price_t2", np.nan)),
+                "future_price_t3": float(info.get("future_price_t3", np.nan)),
+                "future_price_t4": float(info.get("future_price_t4", np.nan)),
+                "future_price_t5": float(info.get("future_price_t5", np.nan)),
+                "future_price_t6": float(info.get("future_price_t6", np.nan)),
                 "covered_kwh_total": covered_kwh,
                 "action_cont_1": float(action[0]),
                 "action_cont_2": float(action[1]),
@@ -276,7 +282,7 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
     """Construye reporte financiero agregado."""
     # Costo estrategia DDPG aproximado = costo spot - pnl + costos operativos
     merged = eval_df.merge(spot_daily[["Fecha", "spot_cost"]], on="Fecha", how="left")
-    merged["spot_cost"] = merged["spot_cost"].ffill()
+    merged["spot_cost"] = merged["spot_cost"].ffill().bfill()
 
     merged["strategy_cost_daily"] = (
         merged["spot_cost"]
@@ -294,7 +300,7 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
     vol_reduction = vol_spot - vol_strategy
 
     total_margin_calls = int((merged["margin_calls_cost"] > 0.0).sum())
-    overhedge_rate = float((merged["sobre_cobertura_kwh"] > 0.0).mean())
+    total_margin_calls_cost = float(merged["margin_calls_cost"].sum())
 
     pnl_mean = float(merged["pnl_step"].mean())
     pnl_std = float(merged["pnl_step"].std(ddof=1))
@@ -309,7 +315,7 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
             "Volatilidad_Spot_std": [vol_spot],
             "Volatilidad_Estrategia_std": [vol_strategy],
             "Total_Margin_Calls": [total_margin_calls],
-            "Tasa_Sobrecobertura": [overhedge_rate],
+            "Total_Margin_Calls_COP": [total_margin_calls_cost],
             "Sharpe_PnL": [sharpe],
         }
     )

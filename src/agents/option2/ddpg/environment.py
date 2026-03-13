@@ -53,7 +53,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         futures_lookup: pd.DataFrame,              # MultiIndex (Fecha, Nemotecnico)
         nemotecnico_map_t1_t6: pd.DataFrame,       # index Fecha, cols Nemotecnico_t1..t6
         demand_aligned: pd.DataFrame,              # index Fecha
-        precios_liquidacion: pd.DataFrame,         # cols: FechaVencimiento, Precio_COP/kWh_Dia
+        precios_liquidacion: pd.DataFrame,         # cols: FechaVencimiento, Precio_COP/kWh_bloque
         datos_precios: pd.DataFrame,
         initial_capital: float,
         config: ProjectConfig = CONFIG,
@@ -103,7 +103,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         # Penalización por compra duplicada (hiperparámetro simple)
         self.duplicate_buy_penalty_value: float = 0.0
 
-        # Índice rápido de liquidación: FechaVencimiento -> Precio_COP/kWh_Dia
+        # Índice rápido de liquidación: FechaVencimiento -> Precio_COP/kWh_bloque
         self.liq_price_by_date: Dict[pd.Timestamp, float] = self._build_settlement_lookup(self.precios_liquidacion)
 
         self.spot_price_lookup: Dict[pd.Timestamp, float] = self._build_spot_lookup(datos_precios)
@@ -189,7 +189,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
             price_today = float(row["Precio"])
             expiry_date = pd.to_datetime(row["FechaVencimientoContrato"])
-            demand_col = f"Demanda_Comprador_Dia_{month_slot:02d}Meses_Adelante"
+            demand_col = f"Demanda_Comprador_{self.config.contract.bloque}_{month_slot:02d}Meses_Adelante"
             expected_demand_kwh = self._get_expected_demand(current_date, demand_col)
             demand_to_cover_kwh_by_slot[month_slot - 1] = float(expected_demand_kwh)    
 
@@ -264,7 +264,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     continue
 
                 # 2.1 Verificación de vencimiento
-                if current_date >= pos.fecha_vencimiento:
+                if current_date >= pos.fecha_vencimiento or current_date >= pd.to_datetime(self.config.general.last_date_to_consider):
                     # Precio de liquidación final (por fecha de vencimiento)
                     liq_price = self._get_settlement_price(pos.fecha_vencimiento)
                     spot_price = self._get_spot_price(pos.fecha_vencimiento)
@@ -315,7 +315,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                         #pnl_delta -= variation_margin
                     else:
                         truncated = True
-                        pnl_delta -= abs(variation_margin) * 2.0  # penalización severa bancarrota
+                        #pnl_delta -= abs(variation_margin) * 2.0  # penalización severa bancarrota
                         break
 
                 if pos.margin_balance > pos.initial_margin_required:
@@ -354,7 +354,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         # Castiga no cubrir cuando ex-post el spot estuvo por encima del futuro del slot
         opportunity_cost = 0.0
         for month_slot in range(1, self.config.contract.max_horizon_months + 1):
-            demand_col = f"Demanda_Comprador_Dia_{month_slot:02d}Meses_Adelante"
+            demand_col = f"Demanda_Comprador_{self.config.contract.bloque}_{month_slot:02d}Meses_Adelante"
             expected_demand_kwh = self._get_expected_demand(current_date, demand_col)
             covered_kwh = coverage_by_slot_kwh[month_slot]
 
@@ -400,6 +400,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         opportunity_norm = opportunity_cost / opp_scale
         opportunity_expiry_norm = opportunity_cost_expiry / opp_expiry_scale
 
+        # Penalización de cobertura
         coverage_penalties: List[float] = []
         for m in range(1, self.config.contract.max_horizon_months + 1):
             demand_m = float(demand_to_cover_kwh_by_slot[m - 1])
@@ -411,6 +412,10 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             coverage_penalties.append(penalty_m)
 
         coverage_penalty = float(np.mean(coverage_penalties)) if coverage_penalties else 0.0
+
+        # Penalización capital
+        capital_ratio = self.current_capital / self.initial_capital
+        stress_cap_penalty = max(0.0, 0.5 - capital_ratio)
 
         #reward = (
         #    self.config.reward.w_pnl * pnl_norm
@@ -431,7 +436,15 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             - self.config.reward.w_duplicate * duplicate_norm
             - self.config.reward.w_opportunity * opportunity_norm
             - self.config.reward.w_opportunity_expiry * opportunity_expiry_norm
+            - self.config.reward.w_capital_stress * stress_cap_penalty
         )
+        if reward > 0:
+            reward = min(reward, 5.0)   # cap ganancias
+        elif truncated:
+            reward = -1000.0 # bancarrota severa
+        else:
+            reward = max(reward, -5.0)  # permite castigo más fuerte
+
         self.pnl_history.append(float(pnl_step_total))
         self.margin_account_balance_total = float(sum(p.margin_balance for p in self.inventory.values()))
 
@@ -455,7 +468,13 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "withdrawals": float(withdrawals),
             "risk_penalty": float(risk_penalty),
             "opportunity_cost": float(opportunity_cost),
-            "spot_price_ref": float(spot_price_ref),
+            "spot_price": float(self._get_spot_price(current_date)),
+            "future_price_t1": float(self._get_price(current_date, self._get_nemotecnico_for_slot(current_date, 1) or "")),
+            "future_price_t2": float(self._get_price(current_date, self._get_nemotecnico_for_slot(current_date, 2) or "")),
+            "future_price_t3": float(self._get_price(current_date, self._get_nemotecnico_for_slot(current_date, 3) or "")),
+            "future_price_t4": float(self._get_price(current_date, self._get_nemotecnico_for_slot(current_date, 4) or "")),
+            "future_price_t5": float(self._get_price(current_date, self._get_nemotecnico_for_slot(current_date, 5) or "")),
+            "future_price_t6": float(self._get_price(current_date, self._get_nemotecnico_for_slot(current_date, 6) or "")),
             "duplicate_buy_penalty": float(duplicate_buy_penalty),
             "margin_balance_total": float(self.margin_account_balance_total),
             "executed_disc_1": int(executed_actions[0]),
@@ -488,6 +507,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "opportunity_cost_expiry": float(opportunity_cost_expiry),
             "reward_opportunity_expiry_norm": float(opportunity_expiry_norm),
             "coverage_penalty": float(coverage_penalty),
+            "capital_ratio_norm": float(stress_cap_penalty),
             "current_date": str(current_date.date())
         }
 
@@ -504,9 +524,42 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
         obs = self.sequences_lstm[idx].copy()
 
+        n_cov = self.config.contract.max_horizon_months  # 6
+        n_exp = 1
+        n_cap = 1
+        n_tail = n_cov + n_exp + n_cap
+        n_feats = obs.shape[1]
+
         # Se asume que los últimos 6 features son Coverage_Mes_01..06.
-        if obs.shape[1] >= self.config.contract.max_horizon_months:
-            obs[:, -self.config.contract.max_horizon_months :] = self.coverage_state.reshape(1, -1)
+        cov_start = n_feats - n_tail
+        cov_end = cov_start + n_cov
+        exp_idx = cov_end
+        cap_idx = exp_idx + 1
+
+        if cov_start >= 0:
+            obs[:, cov_start:cov_end] = self.coverage_state.reshape(1, -1)
+
+        # Cercanía vencimiento
+        current_date = self.timeline[step]
+        days_list = []
+        for p in self.inventory.values():
+            d = (p.fecha_vencimiento - current_date).days
+            if d >= 0:
+                days_list.append(d)
+
+        if days_list:
+            min_days = float(min(days_list))
+        else:
+            min_days = 999.0
+
+        min_days_norm = min(min_days / 30.0, 1.0)  # [0,1]
+
+        # Requiere 1 columnas extra al final del tensor de features
+        if exp_idx >= 0:
+            obs[:, exp_idx] = min_days_norm
+        
+        capital_ratio_curr = float(self.current_capital / self.initial_capital)
+        obs[:, cap_idx] = capital_ratio_curr
 
         return obs
 
@@ -573,6 +626,8 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         """
         pos = self.inventory[nem]
         pnl_close = (close_price - pos.entry_price) * pos.contract_size_kwh * pos.quantity_contracts
+        delta_mtm = (close_price - pos.prev_price) * pos.contract_size_kwh * pos.quantity_contracts
+        pnl_close += delta_mtm  # incluye ajuste MtM desde último precio
         close_notional = close_price * pos.contract_size_kwh * pos.quantity_contracts
         close_commission = close_notional * self.config.finance.comision_transaccion
         released_margin = pos.margin_balance
@@ -589,7 +644,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
         over = 0.0
         for m in range(1, self.config.contract.max_horizon_months + 1):
-            demand_col = f"Demanda_Comprador_Dia_{m:02d}Meses_Adelante"
+            demand_col = f"Demanda_Comprador_{self.config.contract.bloque}_{m:02d}Meses_Adelante"
             expected = self._get_expected_demand(date, demand_col)
             over += max(0.0, covered_by_slot[m] - expected)
         return float(over)
@@ -601,7 +656,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             return {}
         df["FechaVencimiento"] = pd.to_datetime(df["FechaVencimiento"])
 
-        price_col = "Precio_COP/kWh_Dia"
+        price_col = f"Precio_COP/kWh_{self.config.contract.bloque}"
         if price_col not in df.columns:
             return {}
 
@@ -646,7 +701,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         """Construye lookup de precio spot diario desde datos_PRECIOS.csv."""
         df = datos_precios.copy()
         df["Fecha"] = pd.to_datetime(df["Fecha"])
-        price_col = "Precio_COP/kWh_Dia"
+        price_col = f"Precio_COP/kWh_{self.config.contract.bloque}"
         if price_col not in df.columns:
             raise KeyError(f"Columna {price_col} no encontrada en datos_PRECIOS.csv")
         

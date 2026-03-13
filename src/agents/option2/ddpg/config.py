@@ -103,7 +103,7 @@ class FinanceConfig:
 
     # Hiperparámetro para cálculo de capital inicial dinámico
     factor_holgura: float = 3.0
-    initial_capital_min: float = 10_000_000_000  # 10 mil millones COP
+    initial_capital_min: float = 5_000_000_000  # 5 mil millones COP
 
 
 # =========================
@@ -120,23 +120,24 @@ class RewardConfig:
     pnl_window_size: int = 30
 
     # Normalización
-    w_pnl: float = 0.1
-    w_risk: float = 0.2
-    w_overhedge: float = 0.05
-    w_transaction: float = 0.05
-    w_duplicate: float = 0.2
-    w_opportunity: float = 0.0
-    w_opportunity_expiry: float = 1.0
-    w_coverage: float = 1.5
+    w_pnl: float = 0.10
+    w_risk: float = 0.70
+    w_overhedge: float = 0.10
+    w_transaction: float = 0.10
+    w_duplicate: float = 0.00
+    w_opportunity: float = 0.20
+    w_opportunity_expiry: float = 1.00
+    w_coverage: float = 1.20
+    w_capital_stress: float = 0.6
 
     # Escalas de normalización (COP / kWh)
-    scale_pnl: float = 1e8
+    scale_pnl: float = 5e7
     scale_money: float = 1e7
     scale_tx: float = 1e6
-    scale_kwh: float = 1e7
+    scale_kwh: float = 5e6
     scale_opportunity: float = 1e9
-    scale_opportunity_expiry: float = 1e6
-    scale_risk: float = 1e16
+    scale_opportunity_expiry: float = 8e5
+    scale_risk: float = 8e15
     
 
 # =========================
@@ -146,10 +147,10 @@ class RewardConfig:
 class LSTMConfig:
     """Arquitectura recurrente para actor/crítico."""
 
-    sequence_length: int = 14
+    sequence_length: int = 30
     hidden_size: int = 128
     num_layers: int = 2
-    dropout: float = 0.1
+    dropout: float = 0.0
 
 
 # =========================
@@ -158,15 +159,15 @@ class LSTMConfig:
 @dataclass(frozen=True)
 class DDPGConfig:
     """Hiperparámetros de entrenamiento DDPG."""
-    actor_lr: float = 5e-5
-    critic_lr: float = 2e-4
+    actor_lr: float = 3e-5
+    critic_lr: float = 1e-4
     gamma: float = 0.99
-    tau: float = 0.003
+    tau: float = 0.002
     batch_size: int = 256
     buffer_capacity: int = 400_000
-    exploration_noise_std: float = 0.25
-    exploration_noise_min_std: float = 0.03
-    exploration_noise_decay: float = 0.999
+    exploration_noise_std: float = 0.30
+    exploration_noise_min_std: float = 0.02
+    exploration_noise_decay: float = 0.998
 
 
 # =========================
@@ -176,12 +177,14 @@ class DDPGConfig:
 class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
-    seed: int = 42
+    seed: int = 20
     total_episodes: int = 300
-    test_ratio: float = 0.09
+    test_ratio: float = 0.1
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"
+    train_threshold: int = 100
+    last_date_to_consider: str = "2026-01-30"
 
 
 @dataclass(frozen=True)

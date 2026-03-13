@@ -171,8 +171,8 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
 
         # para log de acciones discretizadas
         action_disc_raw = np.zeros_like(action, dtype=np.int8)
-        action_disc_raw[action <= -0.33] = -1
-        action_disc_raw[action >= 0.33] = 1
+        action_disc_raw[action <= -config.general.discretize_limit] = -1
+        action_disc_raw[action >= config.general.discretize_limit] = 1
 
         current_date = env_test.timeline[env_test.current_step]
 
@@ -244,7 +244,7 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
                 "nem_slot_6": nem_by_slot["slot_6"],
                 "margin_calls_cost": float(info.get("margin_calls_cost", 0.0)),
                 "transaction_costs": float(info.get("transaction_costs", 0.0)),
-                "liquidacion_mtm": float(info.get("pnl_mtm", 0.0)),
+                "liquidacion_mtm": float(info.get("pnl_delta_mtm", 0.0)),
                 "liquidacion_vencimiento": float(info.get("pnl_settlement", 0.0)),
                 "demanda_cubrir_kwh_1": float(info.get("demand_to_cover_kwh_1", 0.0)),
                 "demanda_cubrir_kwh_2": float(info.get("demand_to_cover_kwh_2", 0.0)),
@@ -288,7 +288,7 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
         merged["spot_cost"]
         - merged["pnl_step"]
         + merged["transaction_costs"].fillna(0.0)
-        + merged["margin_calls_cost"].fillna(0.0)
+        #+ merged["margin_calls_cost"].fillna(0.0)
     )
 
     total_spot = float(merged["spot_cost"].sum())
@@ -300,7 +300,7 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
     vol_reduction = vol_spot - vol_strategy
 
     total_margin_calls = int((merged["margin_calls_cost"] > 0.0).sum())
-    overhedge_rate = float((merged["sobre_cobertura_kwh"] > 0.0).mean())
+    total_margin_calls_cost = float(merged["margin_calls_cost"].sum())
 
     pnl_mean = float(merged["pnl_step"].mean())
     pnl_std = float(merged["pnl_step"].std(ddof=1))
@@ -315,7 +315,7 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
             "Volatilidad_Spot_std": [vol_spot],
             "Volatilidad_Estrategia_std": [vol_strategy],
             "Total_Margin_Calls": [total_margin_calls],
-            "Tasa_Sobrecobertura": [overhedge_rate],
+            "Total_Margin_Calls_COP": [total_margin_calls_cost],
             "Sharpe_PnL": [sharpe],
         }
     )

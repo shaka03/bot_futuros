@@ -30,6 +30,8 @@ class AgentDataBundle:
     scaler: RobustScaler
     scaled_feature_columns: List[str]
     coverage_feature_columns: List[str]
+    expiry_feature_columns: List[str]
+    capital_feature_columns: List[str]
 
 
 class DataProcessor:
@@ -58,6 +60,10 @@ class DataProcessor:
         self.coverage_feature_columns: List[str] = [
             f"Coverage_Mes_{i:02d}" for i in range(1, self.config.contract.max_horizon_months + 1)
         ]
+        self.expiry_feature_columns: List[str] = [
+            "MinDaysToExpiry_Open_Norm"
+        ]
+        self.capital_feature_columns: List[str] = ["CapitalRatio"]
 
     # ------------------------------------------------------------------
     # 1) Carga de datos
@@ -190,7 +196,7 @@ class DataProcessor:
             rows.append(out)
 
         nem_map = pd.DataFrame(rows).set_index("Fecha").sort_index()
-        nem_map = nem_map.ffill()  # solo ffill
+        #nem_map = nem_map.ffill()  # solo ffill
 
         self.nemotecnico_map_df = nem_map
         return nem_map
@@ -202,7 +208,7 @@ class DataProcessor:
         """Calcula capital inicial dinámico en COP según fórmula de negocio."""
         self._check_loaded()
 
-        demand_col = "Demanda_kWh_Dia_Comprador"
+        demand_col = f"Demanda_kWh_{self.config.contract.bloque}_Comprador"
         if demand_col not in self.demanda_df.columns:
             raise KeyError(f"No existe columna requerida: {demand_col}")
 
@@ -240,6 +246,14 @@ class DataProcessor:
         for c in self.coverage_feature_columns:
             if c not in df.columns:
                 df[c] = 0.0
+        
+        for c in self.expiry_feature_columns:
+            if c not in df.columns:
+                df[c] = 0.0
+        
+        for c in self.capital_feature_columns:
+            if c not in df.columns:
+                df[c] = 0.0
 
         scale_cols = self._select_state_columns_for_scaling(df)
 
@@ -259,7 +273,12 @@ class DataProcessor:
         if self.scaled_feature_columns is None:
             raise ValueError("Primero ejecute fit_transform_state_with_coverage().")
 
-        feature_cols = self.scaled_feature_columns + self.coverage_feature_columns
+        feature_cols = (
+            self.scaled_feature_columns
+            + self.coverage_feature_columns
+            + self.expiry_feature_columns
+            + self.capital_feature_columns
+        )
         values = state_with_coverage_df[feature_cols].to_numpy(dtype=np.float32)
 
         seq_len = self.config.lstm.sequence_length
@@ -309,6 +328,8 @@ class DataProcessor:
             scaler=self.scaler,
             scaled_feature_columns=self.scaled_feature_columns,
             coverage_feature_columns=self.coverage_feature_columns,
+            expiry_feature_columns=self.expiry_feature_columns,
+            capital_feature_columns=self.capital_feature_columns,
         )
 
     # ------------------------------------------------------------------
@@ -335,9 +356,11 @@ class DataProcessor:
         numeric_cols = [c for c in df.columns if self._is_numeric(df[c])]
 
         excluded_patterns = [
-            "Demanda_Comprador",
-            "Demanda_kWh_Dia_Comprador",
+            #"Demanda_Comprador",
+            #f"Demanda_kWh_{self.config.contract.bloque}_Comprador",
             "Coverage_Mes_",
+            "MinDaysToExpiry",
+            "CapitalRatio"
         ]
 
         selected: List[str] = []
