@@ -44,5 +44,5 @@ def main():
 
     print("Listo. Resultados en:", out_dir)
 
-if __name__ == "__main__":
-    main()
+#if __name__ == "__main__":
+#    main()

@@ -15,6 +15,7 @@ from config import CONFIG, ProjectConfig
 from data_processor import DataProcessor
 from ddpg_agent import DDPGAgent
 from environment import ElectricityHedgingEnv
+from seed_utils import set_all_seeds
 
 
 sns.set_theme(style="whitegrid", context="talk")
@@ -117,6 +118,7 @@ def compute_spot_benchmark_costs(
 def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd.DataFrame]:
     """Ejecuta evaluación out-of-sample sin ruido y retorna tablas de resultados."""
     weights_dir, results_dir = _resolve_dirs(config)
+    set_all_seeds(config.general.seed, deterministic=True)
 
     # Datos completos
     processor = DataProcessor(config)
@@ -161,7 +163,11 @@ def evaluate_agent_out_of_sample(config: ProjectConfig = CONFIG) -> Dict[str, pd
     )
 
     # Rollout evaluación
-    state, _ = env_test.reset()
+    try:
+        state, _ = env_test.reset(seed=config.general.seed)
+    except TypeError:
+        state = env_test.reset(seed=config.general.seed)
+    
     terminated, truncated = False, False
 
     logs: List[Dict[str, float | int | str | pd.Timestamp]] = []

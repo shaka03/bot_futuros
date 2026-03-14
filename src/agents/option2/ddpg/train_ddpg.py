@@ -14,6 +14,7 @@ from config import CONFIG, ProjectConfig
 from data_processor import DataProcessor
 from ddpg_agent import DDPGAgent
 from environment import ElectricityHedgingEnv
+from seed_utils import set_all_seeds
 
 
 def _resolve_training_hyperparams(config: ProjectConfig) -> Tuple[int, int]:
@@ -31,7 +32,7 @@ def _resolve_output_dirs(config: ProjectConfig) -> Tuple[Path, Path]:
     else:
         weights_dir = Path("src/models/option2/ddpg")
 
-    # Resultados (ej. results/option2/)
+    # Resultados (ej. results/option2/ddpg/)
     if hasattr(config.paths, "results_dir"):
         results_dir = Path(config.paths.results_dir)
     else:
@@ -77,6 +78,7 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     # ------------------------------------------------------------------
     # 1) Inicialización de módulos
     # ------------------------------------------------------------------
+    set_all_seeds(config.general.seed, deterministic=True)
     processor = DataProcessor(config)
     bundle = processor.get_agent_data("ELM")
     initial_capital = max(config.finance.initial_capital_min, bundle.dynamic_initial_capital)
@@ -126,7 +128,13 @@ def train_ddpg_agent(config: ProjectConfig = CONFIG) -> Dict[str, List[float]]:
     for episode in range(1, total_episodes + 1):
         t0 = time.perf_counter()
 
-        state, info = env.reset()
+        ep_seed = config.general.seed + episode
+        # usa la variante que soporte tu env:
+        try:
+            state, info = env.reset(seed=ep_seed)
+        except TypeError:
+            state = env.reset(seed=ep_seed)
+
         terminated = False
         truncated = False
 
