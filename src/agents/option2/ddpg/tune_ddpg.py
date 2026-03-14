@@ -29,6 +29,7 @@ import torch
 from config import CONFIG, ProjectConfig
 from train_ddpg import train_ddpg_agent
 from evaluate_and_plot import evaluate_agent_out_of_sample, build_financial_report
+import run_best_model
 
 
 # -----------------------------
@@ -237,6 +238,9 @@ def run_random_search(
     print("\n=== BEST TRIAL ===")
     print(json.dumps(top, indent=2, ensure_ascii=False))
     print(f"\nResultados en: {out_dir}")
+
+    # Correr el mejor modelo encontrado
+    run_best_model.main()
 
     return df
 

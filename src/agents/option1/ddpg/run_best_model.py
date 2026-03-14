@@ -6,7 +6,7 @@ import copy
 from config import CONFIG
 from dataclasses import replace
 from train_ddpg import train_ddpg_agent
-from evaluate_and_plot import evaluate_agent_out_of_sample, build_financial_report
+from evaluate_and_plot import evaluate_agent_out_of_sample, build_financial_report, evaluate_and_plot
 
 def apply_hp(cfg, hp):
     cfg = copy.deepcopy(cfg)
@@ -34,6 +34,7 @@ def main():
     # 2) Evaluar OOS y reporte financiero
     outs = evaluate_agent_out_of_sample(cfg)
     report_df, monthly_df = build_financial_report(outs["eval_df"], outs["spot_daily"])
+    evaluate_and_plot(cfg)
 
     out_dir = Path(cfg.paths.results_dir) / "best_model_run/"
     out_dir.mkdir(parents=True, exist_ok=True)
