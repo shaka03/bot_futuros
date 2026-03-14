@@ -176,7 +176,6 @@ def run_random_search(
 
         # 1) Train
         train_out = train_ddpg_agent(cfg)
-        train_out["episode_pnls"]
         train_pnl_last = float(np.mean(train_out["episode_pnls"][-10:])) if train_out["episode_pnls"] else 0.0
         train_reward_last = float(np.mean(train_out["episode_rewards"][-10:])) if train_out["episode_rewards"] else 0.0
 
