@@ -103,7 +103,7 @@ class FinanceConfig:
 
     # Hiperparámetro para cálculo de capital inicial dinámico
     factor_holgura: float = 3.0
-    initial_capital_min: float = 5_000_000_000  # 1 mil millones COP
+    initial_capital_min: float = 5_000_000_000  # 5 mil millones COP
 
 
 # =========================

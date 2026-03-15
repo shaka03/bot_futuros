@@ -459,6 +459,8 @@ def evaluate_and_plot(config: ProjectConfig = CONFIG) -> None:
     print(f"Resultados guardados en: {results_dir}")
     print(report_df.to_string(index=False))
 
+    return outs, report_df, merged_costs
+
 
 #if __name__ == "__main__":
 #    evaluate_and_plot(CONFIG)

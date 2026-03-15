@@ -48,12 +48,12 @@ class PathsConfig:
         object.__setattr__(
             self,
             "model_dir",
-            self.project_root / "src" / "models" / "option2" / "ddpg",
+            self.project_root / "src" / "models" / "option1" / "ppo",
         )
         object.__setattr__(
             self,
             "results_dir",
-            self.project_root / "results" / "option2" / "ddpg",
+            self.project_root / "results" / "option1" / "ppo",
         )
 
     def ensure_output_dirs(self) -> None:
@@ -86,7 +86,7 @@ class ContractSpecConfig:
 class FinanceConfig:
     """Parámetros de costos, margen y capital inicial dinámico."""
 
-    comision_transaccion: float = 0.001 # 0.1% por transacción
+    comision_transaccion: float = 0.001  # 0.1% por transacción
     umbral_margin_call: float = 0.75
 
     # Rangos de vencimiento en meses -> porcentaje de margen
@@ -113,13 +113,9 @@ class FinanceConfig:
 class RewardConfig:
     """Hiperparámetros de la función de recompensa."""
 
-    #lambda_riesgo: float = 1e-8
-    #lambda_penalizacion: float = 1e-8
-    #lambda_penalizacion_duplicados: float = 1e-8
-    #lambda_oportunidad: float = 1e-2
     pnl_window_size: int = 30
 
-    # Normalización
+    # Pesos
     w_pnl: float = 0.50
     w_risk: float = 0.00
     w_overhedge: float = 0.00
@@ -140,7 +136,7 @@ class RewardConfig:
     scale_opportunity_expiry: float = 8e5
     scale_risk: float = 8e15
     scale_carry: float = 1e8
-    
+
 
 # =========================
 # 5) Redes LSTM
@@ -155,20 +151,38 @@ class LSTMConfig:
 
 
 # =========================
-# 6) Agente DRL (DDPG)
+# 6) Agente DRL (PPO)
 # =========================
 @dataclass(frozen=True)
-class DDPGConfig:
-    """Hiperparámetros de entrenamiento DDPG."""
+class PPOConfig:
+    """Hiperparámetros de entrenamiento PPO."""
+
+    # Optimizadores
     actor_lr: float = 3e-5
     critic_lr: float = 1e-4
+
+    # Descuento y ventaja
     gamma: float = 0.99
-    tau: float = 0.002
-    batch_size: int = 256
-    buffer_capacity: int = 400_000
-    exploration_noise_std: float = 0.20
-    exploration_noise_min_std: float = 0.03
-    exploration_noise_decay: float = 0.9992
+    gae_lambda: float = 0.95
+
+    # PPO objective
+    clip_eps: float = 0.20
+    entropy_coef: float = 0.01
+    value_coef: float = 0.50
+
+    # Estabilidad
+    max_grad_norm: float = 0.50
+    target_kl: float = 0.03
+
+    # Muestreo / actualización
+    rollout_steps: int = 1024
+    ppo_epochs: int = 10
+    mini_batch_size: int = 256
+
+    # Política Gaussiana continua
+    action_std_init: float = 0.20
+    action_std_min: float = 0.05
+    action_std_decay: float = 0.9995
 
 
 # =========================
@@ -188,6 +202,9 @@ class GeneralConfig:
     train_threshold: int = 100
     last_date_to_consider: str = "2026-01-30"
 
+    # Logging opcional
+    log_every: int = 10
+
 
 @dataclass(frozen=True)
 class ProjectConfig:
@@ -198,7 +215,7 @@ class ProjectConfig:
     finance: FinanceConfig = field(default_factory=FinanceConfig)
     reward: RewardConfig = field(default_factory=RewardConfig)
     lstm: LSTMConfig = field(default_factory=LSTMConfig)
-    ddpg: DDPGConfig = field(default_factory=DDPGConfig)
+    ppo: PPOConfig = field(default_factory=PPOConfig)
     general: GeneralConfig = field(default_factory=GeneralConfig)
 
 

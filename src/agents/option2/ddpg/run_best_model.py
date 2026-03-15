@@ -32,9 +32,7 @@ def main():
     train_ddpg_agent(cfg)
 
     # 2) Evaluar OOS y reporte financiero
-    outs = evaluate_agent_out_of_sample(cfg)
-    report_df, monthly_df = build_financial_report(outs["eval_df"], outs["spot_daily"])
-    evaluate_and_plot(cfg)
+    outs, report_df, monthly_df = evaluate_and_plot(cfg)
 
     out_dir = Path(cfg.paths.results_dir) / "best_model_run/"
     out_dir.mkdir(parents=True, exist_ok=True)
