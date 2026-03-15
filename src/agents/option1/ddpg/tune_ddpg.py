@@ -234,7 +234,7 @@ def run_random_search(
     with open(out_dir / "best_trial_summary.json", "w", encoding="utf-8") as f:
         json.dump(top, f, ensure_ascii=False, indent=2)
 
-    print("\n=== BEST TRIAL ===")
+    print("\n=== BEST TRIAL DDPG===")
     print(json.dumps(top, indent=2, ensure_ascii=False))
     print(f"\nResultados en: {out_dir}")
 

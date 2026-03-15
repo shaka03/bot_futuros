@@ -34,8 +34,10 @@ def main():
     # 2) Evaluar OOS y reporte financiero
     outs, report_df, monthly_df = evaluate_and_plot(cfg)
 
+    # 3) Carpeta dedicada de corrida final
     out_dir = Path(cfg.paths.results_dir) / "best_model_run/"
     out_dir.mkdir(parents=True, exist_ok=True)
+    
     outs["eval_df"].to_csv(out_dir / "evaluation_rollout_ddpg.csv", index=False)
     report_df.to_csv(out_dir / "financial_report_ddpg.csv", index=False)
     monthly_df.to_csv(out_dir / "monthly_comparison_ddpg.csv", index=False)
