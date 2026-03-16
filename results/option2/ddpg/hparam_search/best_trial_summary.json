@@ -1,0 +1,16 @@
+{
+  "trial": 20,
+  "seed": 30,
+  "train_reward_mean": -143.6853831906511,
+  "train_pnl_mean": 20402696455.09768,
+  "hp_json": "{\"reward\": {\"w_pnl\": 0.1, \"w_coverage\": 0.2, \"w_transaction\": 0.15, \"w_opportunity\": 0.0, \"w_opportunity_expiry\": 0.1, \"w_capital_stress\": 0.6, \"w_margin_call\": 0.7, \"w_carry\": 0.0, \"w_risk\": 0.0, \"w_overhedge\": 0.08, \"scale_pnl\": 50000000.0, \"scale_money\": 10000000.0, \"scale_tx\": 1000000.0, \"scale_kwh\": 5000000.0, \"scale_opportunity\": 1000000000.0, \"scale_opportunity_expiry\": 800000.0, \"scale_risk\": 8000000000000000.0, \"scale_carry\": 100000000.0}, \"lstm\": {\"sequence_length\": 30, \"hidden_size\": 256, \"num_layers\": 2, \"dropout\": 0.0}, \"ddpg\": {\"actor_lr\": 0.0001, \"critic_lr\": 0.0001, \"gamma\": 0.99, \"tau\": 0.005, \"batch_size\": 128, \"buffer_capacity\": 200000, \"exploration_noise_std\": 0.2, \"exploration_noise_min_std\": 0.01, \"exploration_noise_decay\": 0.9995}, \"general\": {\"discretize_limit\": 0.35, \"total_episodes\": 200, \"train_threshold\": 100, \"test_ratio\": 0.09}}",
+  "score": 619208287.1999998,
+  "Ahorro_Total_COP": 619208287.1999998,
+  "Costo_Total_Spot_COP": 1027795757.7572685,
+  "Costo_Total_Estrategia_DDPG_COP": 408587470.5572687,
+  "Reduccion_Volatilidad_COP_std": -54500597.949628934,
+  "Volatilidad_Estrategia_std": 59583638.97956619,
+  "Total_Margin_Calls": 0,
+  "Total_Margin_Calls_COP": 0.0,
+  "Sharpe_PnL": 0.18508784660142003
+}
