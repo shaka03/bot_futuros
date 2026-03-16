@@ -198,7 +198,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                 ## Obetner spot del día
                 spot_price = self._get_spot_price(current_date)
                 den = self.config.contract.tamano_kwh * max(price_today, 1e-12)
-                qty_contracts = int(math.ceil((expected_demand_kwh * max(spot_price, 0.0)) / den))
+                qty_contracts = int(np.rint((expected_demand_kwh * max(spot_price, 0.0)) / den))
                 qty_contracts = max(0, min(qty_contracts, self.config.contract.max_ordenes))
                 if qty_contracts == 0:
                     continue

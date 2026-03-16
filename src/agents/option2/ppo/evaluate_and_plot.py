@@ -21,8 +21,8 @@ sns.set_theme(style="whitegrid", context="talk")
 
 def _resolve_dirs(config: ProjectConfig) -> Tuple[Path, Path]:
     """Resuelve directorios de pesos y resultados."""
-    weights_dir = Path(getattr(config.paths, "model_dir", "src/models/option1/ppo"))
-    results_dir = Path(getattr(config.paths, "results_dir", "results/option1/ppo"))
+    weights_dir = Path(getattr(config.paths, "model_dir", "src/models/option2/ppo"))
+    results_dir = Path(getattr(config.paths, "results_dir", "results/option2/ppo"))
     weights_dir.mkdir(parents=True, exist_ok=True)
     results_dir.mkdir(parents=True, exist_ok=True)
     return weights_dir, results_dir

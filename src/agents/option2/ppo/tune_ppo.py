@@ -8,7 +8,7 @@ Notas:
     - config.py (ProjectConfig/CONFIG con sección ppo)
     - train_ppo.py (train_ppo_agent)
     - evaluate_and_plot.py (evaluate_agent_out_of_sample, build_financial_report)
-- Guarda resultados en results/option1/ppo/hparam_search
+- Guarda resultados en results/option2/ppo/hparam_search
 """
 
 from __future__ import annotations

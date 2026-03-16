@@ -48,12 +48,12 @@ class PathsConfig:
         object.__setattr__(
             self,
             "model_dir",
-            self.project_root / "src" / "models" / "option1" / "ppo",
+            self.project_root / "src" / "models" / "option2" / "ppo",
         )
         object.__setattr__(
             self,
             "results_dir",
-            self.project_root / "results" / "option1" / "ppo",
+            self.project_root / "results" / "option2" / "ppo",
         )
 
     def ensure_output_dirs(self) -> None:
