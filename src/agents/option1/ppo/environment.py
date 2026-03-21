@@ -649,7 +649,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         - comisión_cierre
         """
         pos = self.inventory[nem]
-        pnl_close = (close_price - pos.entry_price) * pos.contract_size_kwh * pos.quantity_contracts
+        pnl_close = (close_price - pos.prev_price) * pos.contract_size_kwh * pos.quantity_contracts
         close_notional = close_price * pos.contract_size_kwh * pos.quantity_contracts
         close_commission = close_notional * self.config.finance.comision_transaccion
         released_margin = pos.margin_balance
