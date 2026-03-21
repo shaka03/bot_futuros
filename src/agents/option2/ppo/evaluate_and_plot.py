@@ -384,32 +384,60 @@ def plot_monthly_cost_comparison(results_dir: Path, merged: pd.DataFrame) -> Non
     plt.close()
 
 
-def plot_coverage_vs_demand(results_dir: Path, merged: pd.DataFrame) -> None:
-    """Gráfico 3: Área cobertura total vs demanda real diaria."""
+def plot_liquidaciones(results_dir: Path, merged: pd.DataFrame) -> None:
+    """Gráfico 3: Liquidaciones a lo largo del tiempo."""
     df = merged.copy()
-    if "demanda_kwh" not in df.columns:
-        return
+    df["liquidacion_total"] = df["liquidacion_mtm"] + df["liquidacion_vencimiento"]
+    margin_calls = df["margin_calls_cost"].fillna(0.0)
 
     fig, ax = plt.subplots(figsize=(16, 8))
-    ax.fill_between(df["Fecha"], df["demanda_kwh"], alpha=0.35, label="Demanda kWh", color="#1f77b4")
-    ax.fill_between(df["Fecha"], df["covered_kwh_total"], alpha=0.35, label="Cobertura kWh", color="#2ca02c")
-    ax.plot(df["Fecha"], df["demanda_kwh"], color="#1f77b4", linewidth=1.5)
-    ax.plot(df["Fecha"], df["covered_kwh_total"], color="#2ca02c", linewidth=1.5)
+    ax.plot(df["Fecha"], df["liquidacion_total"], color="#1f77b4", linewidth=1.5)
+    ax.vlines(
+        df["Fecha"][margin_calls > 0], ymin=df["liquidacion_total"].min(), ymax=df["liquidacion_total"].max(),
+        color="#ff0e0e", alpha=0.5, label="Margin Calls", linestyles="dashed"
+    )
 
-    ax.set_title("Cobertura Efectiva vs Demanda")
+    ax.set_title("Liquidaciones a lo largo del tiempo")
     ax.set_xlabel("Fecha")
-    ax.set_ylabel("kWh")
+    ax.set_ylabel("Liquidación Total COP")
     ax.legend()
     plt.tight_layout()
-    plt.savefig(results_dir / "grafico_3_cobertura_vs_demanda_ppo.png", dpi=200)
+    plt.savefig(results_dir / "grafico_3_liquidaciones_ppo.png", dpi=200)
+    plt.close()
+
+
+def plot_cuenta_margen(results_dir: Path, merged: pd.DataFrame) -> None:
+    """Gráfico 4: Cuenta de margen."""
+    df = merged.copy()
+    margin_calls = df["margin_calls_cost"].fillna(0.0)
+
+    fig, ax = plt.subplots(figsize=(16, 8))
+    ax.plot(df["Fecha"], df["margin_balance_total"], color="#1f77b4", linewidth=1.5)
+    ax.vlines(
+        df["Fecha"][margin_calls > 0], ymin=df["margin_balance_total"].min(), ymax=df["margin_balance_total"].max(),
+        color="#ff0e0e", alpha=0.5, label="Margin Calls", linestyles="dashed"
+    )
+
+    ax.set_title("Cuenta de Margen Total a lo largo del tiempo")
+    ax.set_xlabel("Fecha")
+    ax.set_ylabel("Margen Total COP")
+    ax.legend()
+    plt.tight_layout()
+    plt.savefig(results_dir / "grafico_4_cuenta_margen_ppo.png", dpi=200)
     plt.close()
 
 
 def plot_actions_heatmap(results_dir: Path, eval_df: pd.DataFrame) -> None:
-    """Gráfico 4: Mapa de calor de decisiones por fecha y horizonte."""
+    """Gráfico 5: Mapa de calor de decisiones por fecha y horizonte."""
+    # Matriz: filas=Fecha, columnas=slot_1..slot_6, valores acción discreta
     mat = eval_df[
         ["Fecha", "action_disc_exec_1", "action_disc_exec_2", "action_disc_exec_3", "action_disc_exec_4", "action_disc_exec_5", "action_disc_exec_6"]
     ].copy()
+    mat.columns = [
+        "Fecha", "Accion_Mes_Cobertura_1", "Accion_Mes_Cobertura_2",
+        "Accion_Mes_Cobertura_3", "Accion_Mes_Cobertura_4", "Accion_Mes_Cobertura_5",
+        "Accion_Mes_Cobertura_6"
+    ]
     mat["Fecha"] = pd.to_datetime(mat["Fecha"]).dt.strftime("%Y-%m-%d")
     mat = mat.set_index("Fecha")
 
@@ -423,11 +451,11 @@ def plot_actions_heatmap(results_dir: Path, eval_df: pd.DataFrame) -> None:
         vmin=-1,
         vmax=1,
     )
-    ax.set_title("Mapa de Calor de Acciones por Horizonte (1..6 meses) - PPO")
+    ax.set_title("Mapa de Calor de Acciones por Horizonte (1..6 meses)")
     ax.set_xlabel("Fecha")
     ax.set_ylabel("Horizonte")
     plt.tight_layout()
-    plt.savefig(results_dir / "grafico_4_mapa_calor_acciones_ppo.png", dpi=200)
+    plt.savefig(results_dir / "grafico_5_mapa_calor_acciones_ppo.png", dpi=200)
     plt.close()
 
 
@@ -447,7 +475,8 @@ def evaluate_and_plot(config: ProjectConfig = CONFIG) -> None:
 
     plot_learning_curve(results_dir)
     plot_monthly_cost_comparison(results_dir, merged_costs)
-    plot_coverage_vs_demand(results_dir, merged_final)
+    plot_liquidaciones(results_dir, merged_final)
+    plot_cuenta_margen(results_dir, merged_final)
     plot_actions_heatmap(results_dir, eval_df)
 
     print("Evaluación finalizada.")

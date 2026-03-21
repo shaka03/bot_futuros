@@ -83,15 +83,6 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
         "w_carry": rng.choice([0.00, 0.05, 0.08, 0.12, 0.15, 0.25]),
         "w_risk": rng.choice([0.00, 0.05, 0.08, 0.12]),
         "w_overhedge": rng.choice([0.00, 0.05, 0.08, 0.12]),
-        # escalas
-        "scale_pnl": 5e7,
-        "scale_money": 1e7,
-        "scale_tx": 1e6,
-        "scale_kwh": 5e6,
-        "scale_opportunity": 1e9,
-        "scale_opportunity_expiry": 8e5,
-        "scale_risk": 8e15,
-        "scale_carry": 1e8
     }
 
     lstm = {
@@ -116,8 +107,6 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
     general = {
         "discretize_limit": rng.choice([0.35, 0.40, 0.45, 0.50]),
         "total_episodes": rng.choice([100, 150, 200]),
-        "train_threshold": 100,
-        "test_ratio": 0.09,
     }
 
     return {"reward": reward, "lstm": lstm, "ddpg": ddpg, "general": general}
@@ -128,15 +117,11 @@ def compute_objective(report_row: pd.Series) -> float:
     Objetivo compuesto (maximizar):
       + ahorro
       - penalización por margin calls en COP
-      - penalización por volatilidad estrategia
     """
     ahorro = float(report_row["Ahorro_Total_COP"])
-    #mc_cost = float(report_row["Total_Margin_Calls_COP"])
-    #vol_strat = float(report_row["Volatilidad_Estrategia_std"])
+    mc_cost = float(report_row["Total_Margin_Calls_COP"])
 
-    # Pesos de penalización (ajustables)
-    #score = ahorro - 0.25 * mc_cost - 5.0 * vol_strat
-    score = ahorro
+    score = ahorro - mc_cost
     return float(score)
 
 
