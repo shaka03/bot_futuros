@@ -163,12 +163,14 @@ def run_random_search(
         train_out = train_ddpg_agent(cfg)
         train_pnl_last = float(np.mean(train_out["episode_pnls"][-10:])) if train_out["episode_pnls"] else 0.0
         train_reward_last = float(np.mean(train_out["episode_rewards"][-10:])) if train_out["episode_rewards"] else 0.0
+        train_episode_time = float(np.mean(train_out["episode_times_sec"][-10:])) if train_out["episode_times_sec"] else 0.0
 
         row: Dict[str, Any] = {
             "trial": t,
             "seed": trial_seed,
             "train_reward_mean": train_reward_last,
             "train_pnl_mean": train_pnl_last,
+            "train_episode_time_mean": train_episode_time,
             "hp_json": json.dumps(hp),
         }
 
