@@ -331,7 +331,7 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
 
 
 def plot_learning_curve(results_dir: Path) -> None:
-    """Gráfico 1: Curva de aprendizaje (reward y pnl por episodio)."""
+    """Gráfico 1: Curva de aprendizaje (reward y ahorro por episodio)."""
     history_path = results_dir / "training_history_ddpg.csv"
     if not history_path.exists():
         return
@@ -342,11 +342,11 @@ def plot_learning_curve(results_dir: Path) -> None:
     ax2 = ax1.twinx()
 
     ax1.plot(hist["episode"], hist["episode_reward"], label="Reward por episodio", color="#1f77b4", linewidth=2)
-    ax2.plot(hist["episode"], hist["episode_pnl"], label="PnL por episodio", color="#ff7f0e", linewidth=2)
+    ax2.plot(hist["episode"], hist["episode_ahorro_cop"], label="Ahorro por episodio", color="#ff7f0e", linewidth=2)
 
     ax1.set_xlabel("Episodio")
     ax1.set_ylabel("Reward", color="#1f77b4")
-    ax2.set_ylabel("PnL (COP)", color="#ff7f0e")
+    ax2.set_ylabel("Ahorro (COP)", color="#ff7f0e")
     ax1.set_title("Curva de Aprendizaje DDPG")
     ax1.grid(True, alpha=0.3)
 

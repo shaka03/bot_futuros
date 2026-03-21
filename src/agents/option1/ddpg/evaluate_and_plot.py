@@ -331,7 +331,7 @@ def build_financial_report(eval_df: pd.DataFrame, spot_daily: pd.DataFrame) -> p
 
 
 def plot_learning_curve(results_dir: Path) -> None:
-    """Gráfico 1: Curva de aprendizaje (reward y pnl por episodio)."""
+    """Gráfico 1: Curva de aprendizaje (reward y ahorro por episodio)."""
     history_path = results_dir / "training_history_ddpg.csv"
     if not history_path.exists():
         return
