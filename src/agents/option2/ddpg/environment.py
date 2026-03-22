@@ -159,7 +159,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         margin_calls_cost = 0.0
         withdrawals = 0.0
         settlement_pnl = 0.0
-        opportunity_cost_expiry = 0.0
 
         contracts_net_step_by_slot = np.zeros(self.config.contract.max_horizon_months, dtype=np.int32)
         demand_to_cover_kwh_by_slot = np.zeros(self.config.contract.max_horizon_months, dtype=np.float64)
@@ -274,15 +273,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
 
                     # Libera margen retenido
                     self.current_capital += pos.margin_balance
-
-                    # Oportunidad al vencimiento (slot de la posición)
-                    shortfall_kwh = uncovered_demand_kwh
-
-                    liq_ref = float(liq_price) if liq_price is not None else float(pos.prev_price)
-                    fut_ref = float(pos.entry_price)  # referencia simple
-                    spread_exp = max(0.0, liq_ref - fut_ref)
-
-                    opportunity_cost_expiry += spread_exp * shortfall_kwh
 
                     # Limpieza
                     del self.inventory[nem]
@@ -411,7 +401,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         pnl_scale = max(float(self.config.reward.scale_pnl), 1.0)
         kwh_scale = max(float(self.config.reward.scale_kwh), 1.0)
         opp_scale = max(float(self.config.reward.scale_opportunity), 1.0)
-        opp_expiry_scale = max(float(self.config.reward.scale_opportunity_expiry), 1.0)
         risk_scale = max(float(self.config.reward.scale_risk), 1.0)
         tx_scale = max(float(self.config.reward.scale_tx), 1.0)
         carry_scale = max(float(self.config.reward.scale_carry), 1.0)
@@ -421,7 +410,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         overhedge_norm = overhedge_kwh / kwh_scale
         transaction_norm = transaction_costs / tx_scale
         opportunity_norm = opportunity_cost / opp_scale
-        opportunity_expiry_norm = opportunity_cost_expiry / opp_expiry_scale
         carry_norm = carry_cost / carry_scale
 
         # Penalización de cobertura
@@ -451,7 +439,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             - self.config.reward.w_overhedge * overhedge_norm
             - self.config.reward.w_transaction * transaction_norm
             - self.config.reward.w_opportunity * opportunity_norm
-            - self.config.reward.w_opportunity_expiry * opportunity_expiry_norm
             - self.config.reward.w_capital_stress * stress_cap_penalty
             - self.config.reward.w_margin_call * margin_call_norm
             - self.config.reward.w_carry * carry_norm
@@ -518,8 +505,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             "reward_overhedge_norm": float(overhedge_norm),
             "reward_tx_norm": float(transaction_norm),
             "reward_opportunity_norm": float(opportunity_norm),
-            "opportunity_cost_expiry": float(opportunity_cost_expiry),
-            "reward_opportunity_expiry_norm": float(opportunity_expiry_norm),
             "reward_carry_norm": float(carry_norm),
             "coverage_penalty": float(coverage_penalty),
             "capital_ratio_norm": float(stress_cap_penalty),

@@ -125,7 +125,6 @@ class RewardConfig:
     w_overhedge: float = 0.00
     w_transaction: float = 0.10
     w_opportunity: float = 0.20
-    w_opportunity_expiry: float = 0.10
     w_coverage: float = 0.25
     w_capital_stress: float = 0.80
     w_margin_call: float = 0.20
@@ -137,7 +136,6 @@ class RewardConfig:
     scale_tx: float = 1e6
     scale_kwh: float = 5e6
     scale_opportunity: float = 1e9
-    scale_opportunity_expiry: float = 8e5
     scale_risk: float = 8e15
     scale_carry: float = 1e8
     

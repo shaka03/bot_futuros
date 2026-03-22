@@ -64,7 +64,6 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
         "w_coverage": rng.choice([0.00, 0.10, 0.20, 0.25, 0.35, 0.5, 0.75, 1.00]),
         "w_transaction": rng.choice([0.05, 0.10, 0.15, 0.20, 0.25, 0.30]),
         "w_opportunity": rng.choice([0.10, 0.20, 0.30]),
-        "w_opportunity_expiry": rng.choice([0.00, 0.05, 0.10, 0.20]),
         "w_capital_stress": rng.choice([0.40, 0.60, 0.80, 1.00, 1.40, 1.50]),
         "w_margin_call": rng.choice([0.05, 0.10, 0.20, 0.30, 0.50, 0.60, 0.70]),
         "w_carry": rng.choice([0.00, 0.05, 0.08, 0.12, 0.15, 0.25]),
