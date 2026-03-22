@@ -85,14 +85,14 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
         "critic_lr": rng.choice([1e-4, 3e-4]),
         "gamma": rng.choice([0.97, 0.98, 0.99]),
         "gae_lambda": rng.choice([0.90, 0.95, 0.97]),
-        "clip_eps": rng.choice([0.15, 0.20]),
+        "clip_eps": rng.choice([0.10, 0.15, 0.20]),
         "entropy_coef": rng.choice([0.005, 0.01, 0.02]),
         "value_coef": rng.choice([0.25, 0.50]),
         "max_grad_norm": rng.choice([0.5, 1.0]),
         "target_kl": rng.choice([0.02, 0.03]),
-        "rollout_steps": rng.choice([128, 256, 512]),
+        "rollout_steps": rng.choice([64, 128, 256]),
         "ppo_epochs": rng.choice([8, 10, 12]),
-        "mini_batch_size": rng.choice([64, 128]),
+        "mini_batch_size": rng.choice([32, 64, 128]),
         "action_std_init": rng.choice([0.35, 0.40, 0.50]),
         "action_std_min": rng.choice([0.03, 0.05]),
         "action_std_decay": rng.choice([0.9995, 0.9998]),
@@ -102,6 +102,21 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
         "discretize_limit": rng.choice([0.10, 0.15, 0.20, 0.25]),
         "total_episodes": rng.choice([150, 200, 250]),
     }
+
+    # coherencia mini-batch vs rollout
+    if ppo["rollout_steps"] == 64:
+        ppo["mini_batch_size"] = rng.choice([32, 64])
+    elif ppo["rollout_steps"] == 128:
+        ppo["mini_batch_size"] = rng.choice([32, 64, 128])
+    else:  # 256
+        ppo["mini_batch_size"] = rng.choice([64, 128])
+    
+    # constraints de reward para evitar políticas extremas
+    if reward["w_transaction"] + reward["w_carry"] > 0.22:
+        reward["w_transaction"] = min(reward["w_transaction"], 0.10)
+
+    if reward["w_margin_call"] + reward["w_capital_stress"] > 0.85:
+        reward["w_margin_call"] = 0.20
 
     return {"reward": reward, "lstm": lstm, "ppo": ppo, "general": general}
 
