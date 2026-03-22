@@ -83,8 +83,8 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
     ppo = {
         "actor_lr": rng.choice([1e-5, 3e-5, 1e-4]),
         "critic_lr": rng.choice([1e-4, 3e-4]),
-        "gamma": rng.choice([0.99]),
-        "gae_lambda": rng.choice([0.95, 0.97]),
+        "gamma": rng.choice([0.97, 0.98, 0.99]),
+        "gae_lambda": rng.choice([0.90, 0.95, 0.97]),
         "clip_eps": rng.choice([0.15, 0.20]),
         "entropy_coef": rng.choice([0.005, 0.01, 0.02]),
         "value_coef": rng.choice([0.25, 0.50]),
