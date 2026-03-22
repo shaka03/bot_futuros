@@ -60,47 +60,46 @@ def patch_config(base: ProjectConfig, hp: Dict[str, Any]) -> ProjectConfig:
 def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
     """Muestreo aleatorio (random search) de hiperparámetros PPO."""
     reward = {
-        # pesos
-        "w_pnl": rng.choice([0.20, 0.30, 0.40, 0.50, 0.60]),
-        "w_coverage": rng.choice([0.25, 0.35, 0.50, 0.60]),
-        "w_transaction": rng.choice([0.05, 0.10, 0.15, 0.20]),
-        "w_opportunity": rng.choice([0.00, 0.10, 0.20, 0.30]),
-        "w_opportunity_expiry": rng.choice([0.00, 0.05, 0.10, 0.20]),
-        "w_capital_stress": rng.choice([0.30, 0.40, 0.60, 0.80]),
-        "w_margin_call": rng.choice([0.05, 0.10, 0.20, 0.30, 0.50]),
-        "w_carry": rng.choice([0.00, 0.05, 0.08, 0.12, 0.15]),
-        "w_risk": rng.choice([0.00, 0.05, 0.08, 0.12]),
-        "w_overhedge": rng.choice([0.00, 0.05, 0.08, 0.12]),
-        "w_invalid_action": rng.choice([0.10, 0.20, 0.40, 0.50]),
+        "w_pnl": rng.choice([0.30, 0.40, 0.50, 0.60]),
+        "w_coverage": rng.choice([0.25, 0.35, 0.50]),
+        "w_transaction": rng.choice([0.03, 0.05, 0.10, 0.15]),
+        "w_opportunity": rng.choice([0.10, 0.20, 0.30]),
+        "w_opportunity_expiry": rng.choice([0.00, 0.05, 0.10]),
+        "w_capital_stress": rng.choice([0.20, 0.30, 0.40, 0.60]),
+        "w_margin_call": rng.choice([0.10, 0.20, 0.30, 0.40]),
+        "w_carry": rng.choice([0.05, 0.08, 0.12]),
+        "w_risk": rng.choice([0.03, 0.05, 0.08]),
+        "w_overhedge": rng.choice([0.00, 0.03, 0.05, 0.08]),
+        "w_invalid_action": rng.choice([0.10, 0.20, 0.30]),
     }
 
     lstm = {
         "sequence_length": rng.choice([14, 21, 30]),
-        "hidden_size": rng.choice([64, 128, 256]),
+        "hidden_size": rng.choice([128, 256]),
         "num_layers": rng.choice([1, 2]),
         "dropout": rng.choice([0.0, 0.1]),
     }
 
     ppo = {
         "actor_lr": rng.choice([1e-5, 3e-5, 1e-4]),
-        "critic_lr": rng.choice([5e-5, 1e-4, 3e-4]),
-        "gamma": rng.choice([0.97, 0.99]),
-        "gae_lambda": rng.choice([0.90, 0.95, 0.97]),
-        "clip_eps": rng.choice([0.10, 0.15, 0.20, 0.25]),
-        "entropy_coef": rng.choice([0.0, 0.005, 0.01, 0.02]),
-        "value_coef": rng.choice([0.25, 0.50, 0.75]),
-        "max_grad_norm": rng.choice([0.3, 0.5, 1.0]),
-        "target_kl": rng.choice([0.01, 0.02, 0.03, 0.05]),
+        "critic_lr": rng.choice([1e-4, 3e-4]),
+        "gamma": rng.choice([0.99]),
+        "gae_lambda": rng.choice([0.95, 0.97]),
+        "clip_eps": rng.choice([0.15, 0.20]),
+        "entropy_coef": rng.choice([0.005, 0.01, 0.02]),
+        "value_coef": rng.choice([0.25, 0.50]),
+        "max_grad_norm": rng.choice([0.5, 1.0]),
+        "target_kl": rng.choice([0.02, 0.03]),
         "rollout_steps": rng.choice([128, 256, 512]),
-        "ppo_epochs": rng.choice([5, 10, 15]),
-        "mini_batch_size": rng.choice([64, 128, 256]),
-        "action_std_init": rng.choice([0.25, 0.35, 0.40, 0.50]),
-        "action_std_min": rng.choice([0.03, 0.05, 0.08]),
-        "action_std_decay": rng.choice([0.9990, 0.9995, 0.9998]),
+        "ppo_epochs": rng.choice([8, 10, 12]),
+        "mini_batch_size": rng.choice([64, 128]),
+        "action_std_init": rng.choice([0.35, 0.40, 0.50]),
+        "action_std_min": rng.choice([0.03, 0.05]),
+        "action_std_decay": rng.choice([0.9995, 0.9998]),
     }
 
     general = {
-        "discretize_limit": rng.choice([0.10, 0.15, 0.20, 0.25, 0.30]),
+        "discretize_limit": rng.choice([0.10, 0.15, 0.20, 0.25]),
         "total_episodes": rng.choice([150, 200, 250]),
     }
 
