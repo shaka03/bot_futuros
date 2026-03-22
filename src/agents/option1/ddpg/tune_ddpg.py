@@ -105,7 +105,7 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
 
     general = {
         "discretize_limit": rng.choice([0.35, 0.40, 0.45, 0.50]),
-        "total_episodes": rng.choice([150, 200, 250]),
+        "total_episodes": rng.choice([100, 150, 200]),
     }
 
     return {"reward": reward, "lstm": lstm, "ddpg": ddpg, "general": general}
