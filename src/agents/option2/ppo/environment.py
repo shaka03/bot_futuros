@@ -350,7 +350,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         #    if p_m is not None and np.isfinite(p_m):
         #        spot_candidates.append(float(p_m))
         #spot_price_ref = float(np.mean(spot_candidates)) if spot_candidates else 0.0
-        spot_price_ref = self._get_spot_price_90(current_date)
         spot_price_curr = self._get_spot_price(current_date)
 
         # Carry por contango
@@ -392,11 +391,17 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             if nem_slot is None:
                 continue
             fut_price = self._get_price(current_date, nem_slot)
+            spot_price_ref = self._get_prev_available_price(current_date, nem_slot)
+            if spot_price_ref is not None:
+                spot_expected_proxy = float(spot_price_ref)
+            else:
+                spot_expected_proxy = float(self._get_spot_price_90(current_date))
+                
             if fut_price is None:
                 continue
 
             if shortfall_kwh > 0:
-                spread = max(0.0, spot_price_ref - float(fut_price))
+                spread = max(0.0, float(spot_expected_proxy) - float(fut_price))
                 opportunity_cost += spread * shortfall_kwh
 
         # --------------------------------------------------------------
@@ -633,6 +638,39 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         if row is None:
             return None
         return float(row["Precio"])
+    
+    def _get_prev_available_price(self, date: pd.Timestamp, nem: str) -> Optional[float]:
+        """
+        Devuelve el precio del día hábil anterior disponible para ese nemotécnico.
+        Si no existe dato previo, retorna None.
+        """
+        try:
+            # Asume MultiIndex (Fecha, Nemotecnico) en futures_lookup
+            idx = self.futures_lookup.index
+
+            # filtra fechas del nem
+            if isinstance(idx, pd.MultiIndex):
+                # nivel 0 = Fecha, nivel 1 = Nemotecnico
+                nem_mask = idx.get_level_values(1) == nem
+                dates_nem = idx.get_level_values(0)[nem_mask]
+            else:
+                return None
+
+            if len(dates_nem) == 0:
+                return None
+
+            d = pd.Timestamp(date)
+
+            # estrictamente anterior al date actual
+            prev_dates = dates_nem[dates_nem < d]
+            if len(prev_dates) == 0:
+                return None
+
+            prev_date = pd.Timestamp(prev_dates.max())
+            return self._get_price(prev_date, nem)
+
+        except Exception:
+            return None
 
     def _get_expected_demand(self, date: pd.Timestamp, demand_col: str) -> float:
         """Demanda esperada por slot para la fecha."""
