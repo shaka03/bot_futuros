@@ -452,9 +452,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         # Penalización margin call
         margin_call_norm = margin_calls_cost / money_scale
 
-        # Penalización acciones invalidas
-        invalid_actions = float(np.mean(np.abs(discrete_actions - executed_actions)) / 2.0)
-
         reward = (
             self.config.reward.w_pnl * pnl_norm
             - self.config.reward.w_coverage * coverage_penalty
@@ -466,7 +463,6 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             - self.config.reward.w_capital_stress * stress_cap_penalty
             - self.config.reward.w_margin_call * margin_call_norm
             - self.config.reward.w_carry * carry_norm
-            - self.config.reward.w_invalid_action * invalid_actions
         )
         if reward > 0:
             reward = min(reward, 5.0)   # cap ganancias

@@ -126,7 +126,6 @@ class RewardConfig:
     w_capital_stress: float = 0.30
     w_margin_call: float = 0.20
     w_carry: float = 0.12
-    w_invalid_action: float = 0.05
 
     # Escalas de normalización (COP / kWh)
     scale_pnl: float = 5e7

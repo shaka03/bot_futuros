@@ -72,7 +72,6 @@ def patch_config(base: ProjectConfig, hp: Dict[str, Any]) -> ProjectConfig:
 def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
     """Muestreo aleatorio (random search) de hiperparámetros."""
     reward = {
-        # pesos
         "w_pnl": rng.choice([0.10, 0.20, 0.30, 0.40, 0.50, 0.60]),
         "w_coverage": rng.choice([0.00, 0.10, 0.20, 0.25, 0.35, 0.5, 0.75, 1.00]),
         "w_transaction": rng.choice([0.05, 0.10, 0.15, 0.20, 0.25, 0.30]),
