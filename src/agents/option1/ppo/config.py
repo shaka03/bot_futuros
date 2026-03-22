@@ -200,7 +200,7 @@ class GeneralConfig:
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"
-    train_threshold: int = 100
+    train_threshold: int = 250
     last_date_to_consider: str = "2026-01-30"
 
     # Logging opcional
