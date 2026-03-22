@@ -274,7 +274,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
                     if liq_price is None:
                         liq_price = pos.prev_price
                     
-                    final_pnl = (spot_price - pos.prev_price) * pos.contract_size_kwh * pos.quantity_contracts
+                    final_pnl = (liq_price - pos.prev_price) * pos.contract_size_kwh * pos.quantity_contracts
                     uncovered_demand_kwh = max(0.0, pos.expected_demand_kwh - (pos.quantity_contracts * pos.contract_size_kwh))
                     uncovered_cost = uncovered_demand_kwh * liq_price
                     settlement_pnl += final_pnl - uncovered_cost
