@@ -100,14 +100,6 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
         "discretize_limit": rng.choice([0.10, 0.15, 0.20, 0.25]),
         "total_episodes": rng.choice([100, 150, 200]),
     }
-
-    # coherencia mini-batch vs rollout
-    if ppo["rollout_steps"] == 128:
-        ppo["mini_batch_size"] = rng.choice([64, 128])
-    elif ppo["rollout_steps"] == 256:
-        ppo["mini_batch_size"] = rng.choice([128, 256])
-    else:  # 512
-        ppo["mini_batch_size"] = rng.choice([128, 256, 512])
     
     # Penalizaciones asociadas al solo hecho de moverse o cubrirse
     friccion_operativa = reward["w_transaction"] + reward["w_carry"] + reward["w_overhedge"]
