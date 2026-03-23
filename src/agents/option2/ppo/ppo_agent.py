@@ -53,14 +53,16 @@ class ActorLSTM(nn.Module):
 
         self.fc1 = nn.Linear(hidden_size, hidden_size)
         self.fc_mu = nn.Linear(hidden_size, action_dim)
-        self.tanh = nn.Tanh()
+        #self.tanh = nn.Tanh()
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         lstm_out, _ = self.lstm(state)            # (B, T, H)
         last_timestep = lstm_out[:, -1, :]        # (B, H)
 
         x = torch.relu(self.fc1(last_timestep))
-        mu = self.tanh(self.fc_mu(x))             # [-1, 1]
+        #mu = self.tanh(self.fc_mu(x))             # [-1, 1]
+        mu = self.fc_mu(x)
+        
         return mu
 
 
@@ -270,7 +272,7 @@ class PPOAgent:
         else:
             action_t = dist.sample()
 
-        action_t = torch.clamp(action_t, -1.0, 1.0)
+        #action_t = torch.clamp(action_t, -1.0, 1.0)
         logprob_t = dist.log_prob(action_t).sum(dim=-1)  # (1,)
 
         action = action_t.squeeze(0).cpu().numpy().astype(np.float32)
