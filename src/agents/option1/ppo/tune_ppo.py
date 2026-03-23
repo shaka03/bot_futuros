@@ -61,11 +61,11 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
     """Muestreo aleatorio (random search) de hiperparámetros PPO."""
     reward = {
         "w_pnl": rng.choice([0.30, 0.40, 0.50, 0.60, 0.65]),
-        "w_coverage": rng.choice([0.00, 0.10, 0.20, 0.25, 0.35, 0.5, 0.75, 1.00]),
+        "w_coverage": rng.choice([0.00, 0.10, 0.20, 0.25, 0.35]),
         "w_transaction": rng.choice([0.05, 0.10, 0.15, 0.20, 0.25, 0.30]),
         "w_opportunity": rng.choice([0.10, 0.20, 0.30]),
-        "w_capital_stress": rng.choice([0.40, 0.60, 0.80, 1.00, 1.40, 1.50]),
-        "w_margin_call": rng.choice([0.05, 0.10, 0.20, 0.30, 0.50, 0.60, 0.70]),
+        "w_capital_stress": rng.choice([0.15, 0.20, 0.25, 0.30, 0.40]),
+        "w_margin_call": rng.choice([0.05, 0.10, 0.20, 0.30]),
         "w_carry": rng.choice([0.00, 0.05, 0.08, 0.12, 0.15, 0.25]),
         "w_risk": rng.choice([0.00, 0.05, 0.08, 0.12]),
         "w_overhedge": rng.choice([0.00, 0.05, 0.08, 0.12]),
@@ -98,7 +98,7 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
 
     general = {
         "discretize_limit": rng.choice([0.10, 0.15, 0.20, 0.25]),
-        "total_episodes": rng.choice([150, 200, 250]),
+        "total_episodes": rng.choice([100, 150, 200]),
     }
 
     # coherencia mini-batch vs rollout
