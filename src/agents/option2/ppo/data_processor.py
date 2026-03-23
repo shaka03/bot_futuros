@@ -255,10 +255,18 @@ class DataProcessor:
             if c not in df.columns:
                 df[c] = 0.0
 
+        test_ratio = float(self.config.general.test_ratio)
+        split_idx = int(len(df) * (1.0 - test_ratio))
+        
         scale_cols = self._select_state_columns_for_scaling(df)
 
         scaler = RobustScaler()
-        df.loc[:, scale_cols] = scaler.fit_transform(df[scale_cols])
+        df_train = df.iloc[:split_idx].copy()
+        df_test = df.iloc[split_idx:].copy()
+        df_train.loc[:, scale_cols] = scaler.fit_transform(df_train[scale_cols])
+        df_test.loc[:, scale_cols] = scaler.transform(df_test[scale_cols])
+
+        df = pd.concat([df_train, df_test], axis=0).sort_index()
 
         self.scaler = scaler
         self.scaled_feature_columns = scale_cols

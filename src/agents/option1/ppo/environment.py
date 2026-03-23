@@ -171,7 +171,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             has_pos = (nem is not None) and (nem in self.inventory) and (self.inventory[nem].quantity_contracts > 0)
             if not has_pos:
                 discrete_actions[month_slot - 1] = 0 # invalida venta sin posición, se ignora
-                invalid_action_penalty -= 0.05 # penaliza acción inválida de venta sin posición
+                invalid_action_penalty -= 0.20 # penaliza acción inválida de venta sin posición
 
         # --------------------------------------------------------------
         # 1) Procesamiento de acciones (compras / ventas)

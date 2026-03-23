@@ -88,7 +88,7 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
         "value_coef": rng.choice([0.25, 0.50]),
         "max_grad_norm": rng.choice([0.5, 1.0]),
         "target_kl": rng.choice([0.02, 0.03]),
-        "rollout_steps": rng.choice([128, 256, 512]),
+        "rollout_steps": rng.choice([256, 512, 1024]),
         "ppo_epochs": rng.choice([8, 10, 12]),
         "mini_batch_size": rng.choice([64, 128, 256]),
         "action_std_init": rng.choice([0.35, 0.40, 0.50]),

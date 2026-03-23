@@ -116,15 +116,15 @@ class RewardConfig:
     pnl_window_size: int = 30
 
     # Pesos
-    w_pnl: float = 0.8
-    w_risk: float = 0.50
+    w_pnl: float = 0.60
+    w_risk: float = 0.12
     w_overhedge: float = 0.00
     w_transaction: float = 0.00
-    w_opportunity: float = 0.00
-    w_coverage: float = 0.50
-    w_capital_stress: float = 0.30
-    w_margin_call: float = 0.20
-    w_carry: float = 0.12
+    w_opportunity: float = 0.10
+    w_coverage: float = 0.10
+    w_capital_stress: float = 0.20
+    w_margin_call: float = 0.30
+    w_carry: float = 0.08
 
     # Escalas de normalización (COP / kWh)
     scale_pnl: float = 5e7
@@ -144,7 +144,7 @@ class LSTMConfig:
     """Arquitectura recurrente para actor/crítico."""
     sequence_length: int = 30
     hidden_size: int = 128
-    num_layers: int = 2
+    num_layers: int = 1
     dropout: float = 0.0
 
 
@@ -156,16 +156,16 @@ class PPOConfig:
     """Hiperparámetros de entrenamiento PPO."""
 
     # Optimizadores
-    actor_lr: float = 3e-5
+    actor_lr: float = 1e-5
     critic_lr: float = 1e-4
 
     # Descuento y ventaja
     gamma: float = 0.99
-    gae_lambda: float = 0.95
+    gae_lambda: float = 0.90
 
     # PPO objective
-    clip_eps: float = 0.20
-    entropy_coef: float = 0.02
+    clip_eps: float = 0.10
+    entropy_coef: float = 0.05
     value_coef: float = 0.50
 
     # Estabilidad
@@ -173,9 +173,9 @@ class PPOConfig:
     target_kl: float = 0.03
 
     # Muestreo / actualización
-    rollout_steps: int = 1024
+    rollout_steps: int = 516
     ppo_epochs: int = 10
-    mini_batch_size: int = 256
+    mini_batch_size: int = 64
 
     # Política Gaussiana continua
     action_std_init: float = 0.40
@@ -191,9 +191,9 @@ class GeneralConfig:
     """Parámetros globales para reproducibilidad y entrenamiento."""
 
     seed: int = 20
-    total_episodes: int = 200
+    total_episodes: int = 30
     test_ratio: float = 0.09
-    discretize_limit: float = 0.30
+    discretize_limit: float = 0.15
 
     # Inicio de iteraciones de negocio
     simulation_start_date: str = "2022-02-01"
