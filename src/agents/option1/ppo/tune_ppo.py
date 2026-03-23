@@ -84,13 +84,13 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
         "gamma": rng.choice([0.97, 0.98, 0.99]),
         "gae_lambda": rng.choice([0.90, 0.95, 0.97]),
         "clip_eps": rng.choice([0.10, 0.15, 0.20]),
-        "entropy_coef": rng.choice([0.005, 0.01, 0.02]),
+        "entropy_coef": rng.choice([0.01, 0.03, 0.05]),
         "value_coef": rng.choice([0.25, 0.50]),
         "max_grad_norm": rng.choice([0.5, 1.0]),
         "target_kl": rng.choice([0.02, 0.03]),
-        "rollout_steps": rng.choice([64, 128, 256]),
+        "rollout_steps": rng.choice([128, 256, 512]),
         "ppo_epochs": rng.choice([8, 10, 12]),
-        "mini_batch_size": rng.choice([32, 64, 128]),
+        "mini_batch_size": rng.choice([64, 128, 256]),
         "action_std_init": rng.choice([0.35, 0.40, 0.50]),
         "action_std_min": rng.choice([0.03, 0.05]),
         "action_std_decay": rng.choice([0.9995, 0.9998]),
@@ -102,19 +102,27 @@ def sample_hyperparams(rng: random.Random) -> Dict[str, Dict[str, Any]]:
     }
 
     # coherencia mini-batch vs rollout
-    if ppo["rollout_steps"] == 64:
-        ppo["mini_batch_size"] = rng.choice([32, 64])
-    elif ppo["rollout_steps"] == 128:
-        ppo["mini_batch_size"] = rng.choice([32, 64, 128])
-    else:  # 256
+    if ppo["rollout_steps"] == 128:
         ppo["mini_batch_size"] = rng.choice([64, 128])
+    elif ppo["rollout_steps"] == 256:
+        ppo["mini_batch_size"] = rng.choice([128, 256])
+    else:  # 512
+        ppo["mini_batch_size"] = rng.choice([128, 256, 512])
     
-    # constraints de reward para evitar políticas extremas
-    if reward["w_transaction"] + reward["w_carry"] > 0.22:
-        reward["w_transaction"] = min(reward["w_transaction"], 0.10)
+    # Penalizaciones asociadas al solo hecho de moverse o cubrirse
+    friccion_operativa = reward["w_transaction"] + reward["w_carry"] + reward["w_overhedge"]
+    
+    # Regla de oro: Las fricciones no pueden ser mayores a la mitad del incentivo
+    if friccion_operativa >= (reward["w_pnl"] * 0.5):
+        # Reducimos las fricciones a la mitad para garantizar que operar valga la pena
+        reward["w_transaction"] *= 0.5
+        reward["w_carry"] *= 0.5
+        reward["w_overhedge"] *= 0.5
 
-    if reward["w_margin_call"] + reward["w_capital_stress"] > 0.85:
-        reward["w_margin_call"] = 0.20
+    # Mantener el límite del margin call para no volver al agente hiper-conservador
+    if reward["w_margin_call"] + reward["w_capital_stress"] > 0.60: # Reducido de 0.85
+        reward["w_margin_call"] = 0.15
+        reward["w_capital_stress"] = 0.20
 
     return {"reward": reward, "lstm": lstm, "ppo": ppo, "general": general}
 
