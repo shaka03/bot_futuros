@@ -163,13 +163,15 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
         contracts_net_step_by_slot = np.zeros(self.config.contract.max_horizon_months, dtype=np.int32)
         demand_to_cover_kwh_by_slot = np.zeros(self.config.contract.max_horizon_months, dtype=np.float64)
 
+        invalid_action_penalty = 0.0
         for month_slot, act in enumerate(discrete_actions, start=1):
             if act != -1:
                 continue
             nem = self._get_nemotecnico_for_slot(current_date, month_slot)
             has_pos = (nem is not None) and (nem in self.inventory) and (self.inventory[nem].quantity_contracts > 0)
             if not has_pos:
-                discrete_actions[month_slot - 1] = 0 # invalida venta sin posición, se ignora y no penaliza (no short naked)
+                discrete_actions[month_slot - 1] = 0 # invalida venta sin posición, se ignora
+                invalid_action_penalty -= 0.05 # penaliza acción inválida de venta sin posición
 
         # --------------------------------------------------------------
         # 1) Procesamiento de acciones (compras / ventas)
@@ -450,6 +452,7 @@ class ElectricityHedgingEnv(gym.Env[np.ndarray, np.ndarray]):
             - self.config.reward.w_capital_stress * stress_cap_penalty
             - self.config.reward.w_margin_call * margin_call_norm
             - self.config.reward.w_carry * carry_norm
+            + invalid_action_penalty
         )
         if reward > 0:
             reward = min(reward, 5.0)   # cap ganancias
