@@ -1,0 +1,17 @@
+{
+  "trial": 2,
+  "seed": 12,
+  "train_reward_mean": -276.5160179424248,
+  "train_pnl_mean": 19873920730.6512,
+  "train_episode_time_mean": 16.3960859457904,
+  "hp_json": "{\"reward\": {\"w_pnl\": 0.65, \"w_coverage\": 0.35, \"w_transaction\": 0.3, \"w_opportunity\": 0.2, \"w_capital_stress\": 1.0, \"w_margin_call\": 0.1, \"w_carry\": 0.25, \"w_risk\": 0.08, \"w_overhedge\": 0.08}, \"lstm\": {\"sequence_length\": 14, \"hidden_size\": 128, \"num_layers\": 1, \"dropout\": 0.1}, \"ddpg\": {\"actor_lr\": 0.0001, \"critic_lr\": 0.0001, \"gamma\": 0.97, \"tau\": 0.005, \"batch_size\": 128, \"buffer_capacity\": 200000, \"exploration_noise_std\": 0.1, \"exploration_noise_min_std\": 0.01, \"exploration_noise_decay\": 0.9992}, \"general\": {\"discretize_limit\": 0.45, \"total_episodes\": 100}}",
+  "score": 452238923.9828987,
+  "Ahorro_Total_COP": 497361323.9828987,
+  "Costo_Total_Spot_COP": 1207815909.4542017,
+  "Costo_Total_Estrategia_DDPG_COP": 710454585.471303,
+  "Reduccion_Volatilidad_COP_std": -34243469.48454143,
+  "Volatilidad_Estrategia_std": 39870365.724281184,
+  "Total_Margin_Calls": 5,
+  "Total_Margin_Calls_COP": 180489600.0,
+  "Sharpe_PnL": 0.17044180290763666
+}
