@@ -53,7 +53,7 @@ class ActorLSTM(nn.Module):
 
         self.fc1 = nn.Linear(hidden_size, hidden_size)
         self.fc_mu = nn.Linear(hidden_size, action_dim)
-        #elf.tanh = nn.Tanh()
+        self.tanh = nn.Tanh()
 
     def forward(self, state: torch.Tensor) -> torch.Tensor:
         lstm_out, _ = self.lstm(state)            # (B, T, H)
