@@ -1,4 +1,4 @@
-# Bot de Trading de Futuros de Energía 🤖⚡
+# Agente para Coberturas con Futuros de Energía 🤖⚡
 
 Este repositorio desarrolla un bot inteligente para operar en el mercado de futuros de energía colombiano (XM). El proyecto utiliza algoritmos de aprendizaje por refuerzo (RL) para tomar decisiones de inversión automáticas basadas en datos del mercado eléctrico.
 
