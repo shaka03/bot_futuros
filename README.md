@@ -1,18 +1,17 @@
 # Agente para Coberturas con Futuros de Energía 🤖⚡
 
-Este repositorio desarrolla un bot inteligente para operar en el mercado de futuros de energía colombiano (XM). El proyecto utiliza algoritmos de aprendizaje por refuerzo (RL) para tomar decisiones de inversión automáticas basadas en datos del mercado eléctrico.
+Este repositorio desarrolla un agente inteligente para operar en el mercado de futuros de energía colombiano (XM). El proyecto utiliza algoritmos de aprendizaje profundo por refuerzo (DRL) para tomar decisiones de inversión automáticas basadas en datos del mercado eléctrico.
 
 ## 📋 Descripción General
 
-El bot propuesto es un **agente de trading autónomo** que realiza análisis del mercado de futuros de energía e implementa estrategias de negociación mediante redes neuronales profundas. El proyecto forma parte de un trabajo integrador para la especialización MAIN (Métodos Avanzados en Inteligencia Negocial).
+El bot propuesto es un **agente autónomo** que realiza análisis del mercado de futuros de energía e implementa estrategias de cobertura mediante redes neuronales profundas. El proyecto forma parte de un trabajo integrador para la Maestría en Analítica e Inteligencia de Negocios de la Universidad del Valle.
 
 ## 🎯 Objetivos Principales
 
-- Automatizar decisiones de trading en mercados de futuros de energía
+- Automatizar decisiones de cobertura en mercados de futuros de energía
 - Integrar múltiples fuentes de datos (precios spot, futuros, demanda, generación, noticias)
-- Implementar estrategias de trading basadas en aprendizaje por refuerzo
-- Comparar diferentes enfoques de IA (PPO, DDPG, Copilot, Gemini)
-- Optimizar retornos ajustados por riesgo
+- Implementar estrategias de cobertura basadas en aprendizaje por refuerzo
+- Generar eficiencias en cuánto a costo de compra de electricidad
 
 ## 📁 Estructura del Proyecto
 
