@@ -173,10 +173,6 @@ Se generan **4 datasets específicos** por tipo de contrato de futuros:
   - Excelente para control continuo
   - Manejo eficiente de acciones continuas
 
-#### **POCs (Pruebas de Concepto)**:
-- **Copilot**: Integración con Copilot de GitHub para análisis
-- **Gemini1 & Gemini2**: Implementaciones alternativas con Google Gemini
-
 ### Ambiente del Agente
 
 El agente RL interactúa con el mercado diariamente:
@@ -187,7 +183,7 @@ El agente RL interactúa con el mercado diariamente:
   - Venta (Short)
   - Posición Neutra
 - **Recompensa**: Utilidad ajustada por riesgo, penalizaciones por exposición
-- **Horizonte**: Trading diario en mercado de futuros
+- **Horizonte**: revisión diario en mercado de futuros de energía
 
 ### Variables del Agente
 
@@ -413,11 +409,11 @@ Para contribuir al proyecto:
 4. Push a la rama (`git push origin feature/AmazingFeature`)
 5. Abre un Pull Request
 
-## 👤 Autor
+## ⚠️ Disclaimer
 
-**Shaka03**
+Este software es una prueba de concepto académica para la aplicación de Deep Reinforcement Learning en mercados energéticos. No constituye una recomendación de inversión financiera. Los mercados de futuros de energía son altamente volátiles y riesgosos.
 
-Proyecto de investigación para especialización en **Métodos Avanzados en Inteligencia Negocial (MAIN)**.
+Proyecto de investigación para la **Maestría en Analítica e Inteligencia de Negocios**.
 
 ---
 
